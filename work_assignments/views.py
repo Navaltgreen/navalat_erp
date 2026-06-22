@@ -5,7 +5,7 @@ from .models import WorkAssignment
 from teams.models import Team
 from works.models import Works
 from projects.models import Project
-
+from history.models import StatusHistory
 from .serializers import WorkAssignmentSerializer
 from datetime import datetime
 from rest_framework.decorators import action
@@ -196,7 +196,7 @@ class WorkAssignmentViewSet(APIResponseMixin, viewsets.ModelViewSet):
             data={"workassignment": assignments},
             message="Assignments fetched successfully"
         )
-    @action(detail=False, methods=['post'], url_path='update-team-member')
+    @action(detail=False, methods=['post'], url_path='fake')
     def update_team_member(self, request, *args, **kwargs):
         """Update assignments"""
 
@@ -254,6 +254,103 @@ class WorkAssignmentViewSet(APIResponseMixin, viewsets.ModelViewSet):
                 assignment.updated_by = item['updated_by']
 
             assignment.save()
+            updated.append({
+                "work_id": work_id,
+                "category": work.category,
+                "subcategory": work.subcategory,
+                "description": work.description,
+                "status": assignment.status,
+                "comments": assignment.comments,
+                "team_member_id": assignment.team_member_id,
+            })
+
+        return self.get_response(
+            data={"assignments": updated},
+            message="Assignments updated successfully"
+        )
+    
+    @action(detail=False, methods=['post'], url_path='update-team-member')
+    def update_team_member(self, request, *args, **kwargs):
+        """Update assignments"""
+
+        payload = request.data.get('data', [])
+        if not payload:
+            return self.get_response(
+                data=None,
+                message="No data provided",
+                meta={"status_code": 400}
+            )
+
+        updated = []
+        history_entries = []
+        for item in payload:
+            work_id = item.get('work_id')
+            assigned_to = item.get('assigned_to', {})
+            team_member_id = assigned_to.get('id')
+
+            if not work_id:
+                continue
+
+            # ── Work model update ──────────────────────────────────────
+            try:
+                work = Works.objects.get(id=work_id)
+            except Works.DoesNotExist:
+                continue
+
+            work_fields = ['project_id', 'category', 'subcategory', 'tab', 'description']
+            for field in work_fields:
+                if field in item:
+                    setattr(work, field, item[field])
+
+            work.save()
+
+            # ── WorkAssignment model update ────────────────────────────
+            try:
+                assignment = WorkAssignment.objects.get(work_id=work_id,team_member_id=team_member_id)
+            except WorkAssignment.DoesNotExist:
+                continue
+            previous_status = assignment.status  # ✅ capture before overwrite
+            new_status = item.get('status', assignment.status)
+
+            if 'assigned_to' in item:
+                change_type='assigned_to'
+
+                assignment.team_member_id = item['assigned_to'].get('id')
+
+            if 'status' in item:
+                assignment.status = item['status']
+
+            if 'comments' in item:
+                change_type='comments'
+
+                assignment.comments = item['comments']
+
+            # assignment.updated_by = (
+            #     request.user.id
+            #     if request.user.is_authenticated
+            #     else None
+            # )
+            if 'updated_by' in item:
+                change_type='updated_by'
+                
+                assignment.updated_by = item['updated_by']
+            if 'status' in item and previous_status != new_status:
+                change_type='status_update'
+                history_entries.append(
+                    StatusHistory(
+                        work_id=work_id,
+                        previous_status=previous_status,
+                        status=new_status,
+                        comments=item.get('comments'),
+                        team_member_id=team_member_id,
+                        change_type=change_type,   # or pass from frontend
+                        changed_at=datetime.now(),
+                    )
+                )
+            assignment.save()
+            if history_entries:
+                StatusHistory.objects.bulk_create(history_entries)
+
             updated.append({
                 "work_id": work_id,
                 "category": work.category,

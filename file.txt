@@ -1,0 +1,141 @@
+Issue creation — POST /api/issues/
+
+Summary
+- This document describes the JSON payload required to create an Issue via POST /api/issues/ and the automatic behavior: when an Issue is created, a StatusHistory record should be created to record the initial status.
+
+Contract (inputs/outputs)
+- Endpoint: POST /api/issues/
+- Input: JSON object matching the Issue model fields (see "Payload schema" below).
+- Output: standardized API response (success true/false, data contains created issue object).
+- Side-effect: create a StatusHistory record linked to the new Issue (see "StatusHistory behavior").
+
+Payload schema (fields)
+- project_id (integer) — required
+  - The id of the Project the issue belongs to.
+- category (string) — required
+  - High-level category name.
+- subcategory (string) — required
+  - Subcategory name.
+- tab (string) — required
+  - Tab name (e.g., "qa", "dev").
+- status (string) — required
+  - Initial status for the issue (e.g., "open", "in_progress", "closed").
+- images (string) — optional
+  - A string field storing image identifiers or comma-separated URLs/ids. Optional, can be null/empty.
+- description (string) — required
+  - Issue description text.
+- comments (string) — optional
+  - Any additional comments.
+- team_id (integer) — optional
+  - The id of the assigned team (or team member id depending on your model usage).
+
+Example request body
+
+POST /api/issues/
+Content-Type: application/json
+
+{
+  "project_id": 12,
+  "category": "bug",
+  "subcategory": "ui",
+  "tab": "qa",
+  "status": "open",
+  "images": "http://example.com/image1.png",
+  "description": "Submit button not working on the signup form.",
+  "comments": "Observed on Chrome 90",
+  "team_id": 3
+}
+
+Successful response example (201 created)
+
+{
+  "success": true,
+  "message": "Issue created successfully",
+  "data": {
+    "id": 42,
+    "project_id": 12,
+    "category": "bug",
+    "subcategory": "ui",
+    "tab": "qa",
+    "status": "open",
+    "images": "http://example.com/image1.png",
+    "description": "Submit button not working on the signup form.",
+    "comments": "Observed on Chrome 90",
+    "team_id": 3,
+    "created_at": "2026-04-24T12:34:56.789Z",
+    "created_by": null,
+    "updated_at": "2026-04-24T12:34:56.789Z",
+    "updated_by": null
+  },
+  "meta": { "status_code": 201 }
+}
+
+StatusHistory: automatic update when an Issue is created
+- On successful creation of an Issue, the API/service SHOULD create a StatusHistory record that captures the initial status.
+- Suggested fields for the created StatusHistory record (based on current `history.StatusHistory` model):
+  - issue_id: the newly-created Issue.id
+  - previous_status: empty string or a special value like "none" (must be non-null in current model)
+  - status: the Issue.status value from the request (e.g., "open")
+  - comments: optional; can contain a short message like "Initial status on create"
+  - team_member_id: optional; if the issue assignment includes a specific team member
+  - change_type: optional; e.g., "create"
+  - changed_at: timestamp (match Issue.created_at)
+
+Example StatusHistory created by the server
+
+{
+  "id": 1001,
+  "issue_id": 42,
+  "previous_status": "",
+  "status": "open",
+  "comments": "Initial status on create",
+  "team_member_id": null,
+  "change_type": "create",
+  "changed_at": "2026-04-24T12:34:56.789Z",
+  "created_at": "2026-04-24T12:34:56.789Z",
+  "created_by": null,
+  "updated_at": "2026-04-24T12:34:56.789Z",
+  "updated_by": null
+}
+
+Notes, validation and error behavior
+- Required fields: project_id, category, subcategory, tab, status, description.
+- If a required field is missing or has wrong type, the API should return a 400 response with details on validation errors. Example:
+
+{
+  "success": false,
+  "message": "Validation failed",
+  "data": { "category": ["This field is required."] },
+  "meta": { "status_code": 400 }
+}
+
+- If automatic StatusHistory creation fails after Issue creation, you should consider one of:
+  - wrapping Issue+StatusHistory creation in a DB transaction so both succeed or both rollback (recommended), or
+  - catching the history-creation error and queuing a retry while returning success for the Issue (less ideal).
+
+Implementation suggestions
+- In the IssueViewSet.create() method, after serializer.validated_data is saved, create a StatusHistory record using the Issue.id and Issue.status and set changed_at to Issue.created_at.
+- Use transaction.atomic() to ensure both Issue and StatusHistory writes succeed together.
+
+Example code sketch (server-side, Django)
+
+from django.db import transaction
+from history.models import StatusHistory
+
+with transaction.atomic():
+    issue = serializer.save()
+    StatusHistory.objects.create(
+        issue_id=issue.id,
+        previous_status="",
+        status=issue.status,
+        comments="Initial status on create",
+        change_type="create",
+        changed_at=issue.created_at,
+    )
+
+Requirements coverage
+- Document required/optional fields: Done
+- Example request/response: Done
+- Automatic StatusHistory behavior and example: Done
+- Implementation recommendation (transaction): Done
+

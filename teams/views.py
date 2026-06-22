@@ -63,7 +63,7 @@ class TeamViewSet(APIResponseMixin, viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='all')
     def all_teams(self, request, *args, **kwargs):
         """Get all teams as label/value pairs"""
-        queryset = self.get_queryset()
+        # queryset = self.get_queryset()
         members = Team.objects.exclude( member__isnull=False)
         
         teams = list({
@@ -74,6 +74,7 @@ class TeamViewSet(APIResponseMixin, viewsets.ModelViewSet):
             data={"teams": teams},
             message="Teams fetched successfully"
         )
+    
     # api for teams in works
     @action(detail=False, methods=['get'], url_path='members')
     def get_members(self, request, *args, **kwargs):
