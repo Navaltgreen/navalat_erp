@@ -57,7 +57,7 @@ INSTALLED_APPS = [
     'works',
     'work_assignments',
     'history',
-    # 'drf_yasg', 
+    'sales', 
 ]
 
 MIDDLEWARE = [
