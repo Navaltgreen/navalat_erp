@@ -1,0 +1,100 @@
+import { Button, Modal, Form, Input, Space, Upload } from "antd";
+import { UploadOutlined } from "@ant-design/icons";
+import { useUpdateProposalMutation } from "../../../../query/sales/management/proposal/update.query";
+import { useUploadDocumentMutation } from "../../../../query/sales/management/proposal/uploadfile.query.ts";
+import type { proposalDataType } from "../../../../types/sales/leads/leads.edit.request";
+import { useEffect } from "react";
+
+type EditTableModelProps = {
+  open: boolean;
+  onClose: () => void;
+  editData: proposalDataType | null;
+};
+
+const EditTableModel: React.FC<EditTableModelProps> = ({
+  open,
+  onClose,
+  editData,
+}) => {
+  const { mutate: updateProposalMutate, isPending } =
+    useUpdateProposalMutation();
+  const { mutateAsync: uploadDocument } = useUploadDocumentMutation();
+
+  const [form] = Form.useForm();
+  useEffect(() => {
+    if (editData) {
+      form.setFieldsValue({
+        remark: editData.remark ?? "", // important mapping
+      });
+    }
+  }, [editData, form]);
+  return (
+    <>
+      <Modal
+        title="Edit Proposal"
+        open={open}
+        onCancel={onClose}
+        footer={null}
+        destroyOnHidden
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          //    onFinish={(values) => console.log(values)}
+          disabled={isPending}
+          onFinish={async (values) => {
+            if (!editData?.id) return;
+            let fileUrl = "";
+            if (values.attachment?.fileList?.length) {
+              const file = values.attachment.fileList[0].originFileObj;
+
+              const uploadResponse = await uploadDocument(file);
+
+              fileUrl = uploadResponse.s3Url;
+            }
+
+            updateProposalMutate(
+              {
+                id: editData.id,
+                payload: {
+                  fileUrl: fileUrl,
+                  remarks: values.remarks,
+                  proposal_number: editData.proposal_no ?? 0,
+                },
+              },
+              {
+                onSuccess: () => {
+                  form.resetFields();
+                  onClose();
+                },
+              },
+            );
+          }}
+        >
+          <Form.Item label="Upload Document" name="attachment">
+            <Upload
+              beforeUpload={() => false} // prevent auto upload
+              maxCount={1}
+            >
+              <Button icon={<UploadOutlined />}>Select File</Button>
+            </Upload>
+          </Form.Item>
+
+          <Form.Item label="Remarks" name="remarks">
+            <Input.TextArea rows={4} placeholder="Enter remarks" />
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0 }}>
+            <Space style={{ width: "100%", justifyContent: "flex-end" }}>
+              <Button type="primary" htmlType="submit">
+                Submit
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
+  );
+};
+
+export default EditTableModel;
