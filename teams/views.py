@@ -67,7 +67,7 @@ class TeamViewSet(APIResponseMixin, viewsets.ModelViewSet):
         members = Team.objects.exclude( member__isnull=False)
         
         teams = list({
-            team.name: {"label": team.name, "value": str(team.team_id)}
+            team.name: {"label": team.name, "value": int(team.team_id)}
             for team in members
         }.values())
         return self.get_response(

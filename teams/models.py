@@ -5,7 +5,6 @@ class Team(models.Model):
     team_id = models.IntegerField()
     name = models.CharField(max_length=255)
     member = models.CharField(max_length=255, null=True, blank=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.IntegerField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
