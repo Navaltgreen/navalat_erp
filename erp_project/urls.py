@@ -44,4 +44,6 @@ urlpatterns = [
     path('api/v1/works/', include('works.urls')),
     path('api/v1/workassignments/', include('work_assignments.urls')),
     path('api/v1/history/', include('history.urls')),
+        path('api/v1/sales/', include('sales.urls')),
+
 ]
