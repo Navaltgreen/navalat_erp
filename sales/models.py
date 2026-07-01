@@ -12,7 +12,7 @@ class BaseModel(models.Model):
     email = models.EmailField(blank=True, null=True)
     phone = models.CharField(max_length=30, blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
-
+    team_member_id=models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -21,7 +21,7 @@ class BaseModel(models.Model):
 
 
 class Lead(BaseModel):
-    lead_status = models.CharField(max_length=100, blank=True, null=True)
+    lead_status = models.CharField(max_length=100, blank=True, null=True,default="Pending")
     lead_source = models.CharField(max_length=100, blank=True, null=True)
     last_activity = models.DateField(blank=True, null=True)
     pic = models.CharField(max_length=255, blank=True, null=True)

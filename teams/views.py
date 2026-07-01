@@ -63,22 +63,20 @@ class TeamViewSet(APIResponseMixin, viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='all')
     def all_teams(self, request, *args, **kwargs):
         """Get all teams as label/value pairs"""
-        queryset = self.get_queryset()
+        # queryset = self.get_queryset()
         members = Team.objects.exclude( member__isnull=False)
         
         teams = list({
-            team.name: {"label": team.name, "value": str(team.id)}
+            team.name: {"label": team.name, "value": str(team.team_id)}
             for team in members
         }.values())
         return self.get_response(
             data={"teams": teams},
             message="Teams fetched successfully"
         )
-    # api for teams in works
     @action(detail=False, methods=['get'], url_path='members')
-    def get_members(self, request, *args, **kwargs):
-        """Get all members of a team by team id"""
-        team_id = request.query_params.get('team_id')
+    def get_members(self, request):
+        team_id = request.query_params.get("team_id")
 
         if not team_id:
             return self.get_response(
@@ -86,25 +84,65 @@ class TeamViewSet(APIResponseMixin, viewsets.ModelViewSet):
                 message="team_id is required",
                 meta={"status_code": 400}
             )
- 
-        members = Team.objects.filter(team_id=team_id).exclude(member=None)
-        if not members.exists():
-            return self.get_response(
-                data=None,
-                message="Team not found",
-                meta={"status_code": 404}
-            )
 
-        member_list = [
-            {
-                "id": member.id,
-                "name": member.member,
-            }
-            for member in members
-        ]
+        teams = TeamSerializer.get_team_members(team_id)
 
         return self.get_response(
-            data={"teams": member_list},
+            data={"teams": list(teams)},
             message="Team members fetched successfully"
         )
-    
+    # api for teams in works
+    # @action(detail=False, methods=['get'], url_path='members')
+    # def get_members(self, request, *args, **kwargs):
+    #     """Get all members of a team by team id"""
+    #     team_id = request.query_params.get("team_id")
+
+    #     if not team_id:
+    #         return self.get_response(
+    #             data=None,
+    #             message="team_id is required",
+    #             meta={"status_code": 400}
+    #         )
+    #     teams=TeamSerializer.get_team_members().filter(team_id=team_id)
+      
+    #     return self.get_response(
+    #         data={"teams": teams},
+    #         message="Teams fetched successfully"
+    #     )
+        # team_id = request.query_params.get('team_id')
+
+        # if not team_id:
+        #     return self.get_response(
+        #         data=None,
+        #         message="team_id is required",
+        #         meta={"status_code": 400}
+        #     )
+ 
+        # members = Team.objects.filter(team_id=team_id).exclude(member=None)
+        # if not members.exists():
+        #     return self.get_response(
+        #         data=None,
+        #         message="Team not found",
+        #         meta={"status_code": 404}
+        #     )
+
+        # member_list = [
+        #     {
+        #         "id": member.id,
+        #         "name": member.member,
+        #     }
+        #     for member in members
+        # ]
+
+        # return self.get_response(
+        #     data={"teams": member_list},
+        #     message="Team members fetched successfully"
+        # )
+    @action(detail=False, methods=['get'], url_path='list')
+    def all_teams_list(self, request):
+        """Get unique teams as id + name pairs"""
+        teams=TeamSerializer.get_teams()
+        return self.get_response(
+            data={"teams": teams},
+            message="Teams fetched successfully"
+        )

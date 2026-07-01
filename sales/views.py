@@ -11,7 +11,10 @@ from .serializers import (
     QuotationSerializer,
     PurchaseOrderSerializer
 )
+import openpyxl
+import os
 
+from .utils import log_status_history
 
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -38,7 +41,7 @@ from .serializers import (
     PurchaseOrderSerializer
 )
 
-
+from teams.models import Team
 class BaseSalesViewSet(APIResponseMixin, viewsets.ModelViewSet):
     list_key = "table_data"
 
@@ -50,7 +53,19 @@ class BaseSalesViewSet(APIResponseMixin, viewsets.ModelViewSet):
             data={self.list_key: serializer.data},
             message=f"{self.list_key} fetched successfully"
         )
+    @action(detail=False, methods=["get"])
+    def team_members(self, request):
+        # members = Team.objects.values("id", "member").filter().order_by("id")
+        members = Team.objects.filter(team_id=100, member__isnull=False).values("id", "member").order_by("id")
+        return self.get_response(
+            data={"team_members": list(members)},
+            message="Team members fetched successfully"
+        )
 
+
+
+
+    
 class LeadViewSet(BaseSalesViewSet):
     queryset = Lead.objects.filter(is_deleted=False)
     serializer_class = LeadSerializer
@@ -64,7 +79,7 @@ class LeadViewSet(BaseSalesViewSet):
                 {"message": "Lead already converted"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
+        previous_status = lead.lead_status
         proposal = Proposal.objects.create(
             lead=lead,
             name=lead.name,
@@ -77,18 +92,29 @@ class LeadViewSet(BaseSalesViewSet):
         )
 
         lead.is_converted = True
-        lead.save(update_fields=["is_converted"])
+        lead.lead_status='Approved'
+        lead.save(update_fields=['is_converted','lead_status'])
+        # print(previous_status)
+        if lead.lead_status != previous_status:
+            log_status_history(
+            work_id=lead.id,
+            previous_status=previous_status,
+            new_status=lead.lead_status,
+            change_type="lead",
+            team_member_id=lead.team_member_id,
+            comments="Lead created"
+        )
 
         return Response({
             "message": "Lead converted successfully",
             "proposal_id": proposal.id
         })
-
+# decline of a lead here.
     @action(detail=True, methods=["put"])
     def update_lead(self, request, pk=None):
 
         lead = self.get_object()
-
+        previous_status= lead.lead_status
         if lead.is_converted:
             return Response(
                 {"message": "Converted lead cannot be modified"},
@@ -118,7 +144,20 @@ class LeadViewSet(BaseSalesViewSet):
                 )
 
         lead.save()
+        if lead.lead_status == 'Decline':
+            comments= "Lead Declined"
+        else:
+            comments= "Lead Updated"
 
+        if lead.lead_status != previous_status:
+            log_status_history(
+            work_id=lead.id,
+            previous_status=previous_status,
+            new_status=lead.lead_status,
+            change_type="lead",
+            team_member_id=lead.team_member_id,
+            comments=comments
+        )
         return Response(
             {
                 "message": "Lead updated successfully",
@@ -149,6 +188,69 @@ class LeadViewSet(BaseSalesViewSet):
             {"message": "Lead deleted successfully"},
             status=status.HTTP_200_OK
             )
+
+    @action(detail=False, methods=["post"], url_path="bulk_insert")
+    def bulk_insert(self, request):
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        SYSTEM_API_DIR = os.path.normpath(os.path.join(BASE_DIR, ".."))
+        file_path = os.path.join(SYSTEM_API_DIR, "CRM_draft1_29.06.26.xlsx")
+
+        if not os.path.exists(file_path):
+            return Response(
+                {"message": "Excel file not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        created_count = 0
+        failed_rows = []
+
+        wb = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
+        ws = wb["Leads"]
+        rows = ws.iter_rows(values_only=True)
+        raw_headers = next(rows)
+        headers = [h.strip() if isinstance(h, str) else h for h in raw_headers]
+
+        for i, row in enumerate(rows, start=1):
+            try:
+                row_dict = dict(zip(headers, row))
+
+                Lead.objects.create(
+                    name=row_dict.get("Name"),
+                    title=row_dict.get("Title"),
+                    division=row_dict.get("Division"),
+                    client=row_dict.get("Client"),
+                    email=row_dict.get("Email"),
+                    phone=row_dict.get("Phone"),
+                    lead_status = row_dict.get("Lead status"),
+                    pic=row_dict.get("PIC"),
+                    is_converted=True,
+                )
+                # if 
+                # Proposal.objects.create(
+                #     name=row_dict.get("Name"),
+                #     title=row_dict.get("Title"),
+                #     division=row_dict.get("Division"),
+                #     client=row_dict.get("Client"),
+                #     email=row_dict.get("Email"),
+                #     phone=row_dict.get("Phone"),
+                #     is_converted=False,
+                # )
+                created_count += 1
+
+            except Exception as e:
+                failed_rows.append({"row": i, "error": str(e)})
+
+        wb.close()
+
+        return Response(
+            {
+                "message": "Bulk insert completed",
+                "created": created_count,
+                "failed": len(failed_rows),
+                "errors": failed_rows,
+            },
+            status=status.HTTP_200_OK
+        )
 
     
 class ProposalViewSet(BaseSalesViewSet):
