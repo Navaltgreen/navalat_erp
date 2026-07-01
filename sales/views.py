@@ -1,75 +1,52 @@
-from .models import (
-    Lead,
-    Proposal,
-    Quotation,
-    PurchaseOrder
-)
-
+from .models import Lead, Proposal, Quotation, PurchaseOrder
 from .serializers import (
-    LeadSerializer,
-    ProposalSerializer,
-    QuotationSerializer,
-    PurchaseOrderSerializer
+    LeadSerializer, ProposalSerializer,
+    QuotationSerializer, PurchaseOrderSerializer
 )
+from .utils1 import log_status_history, log_status
+
 import openpyxl
 import os
 
-from .utils import log_status_history
-
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import status
-
-from rest_framework import viewsets
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, viewsets
 
 from core.api_mixins import APIResponseMixin
-
-from .models import (
-    Lead,
-    Proposal,
-    Quotation,
-    PurchaseOrder
-)
-
-from .serializers import (
-    LeadSerializer,
-    ProposalSerializer,
-    QuotationSerializer,
-    PurchaseOrderSerializer
-)
-
 from teams.models import Team
+
+
 class BaseSalesViewSet(APIResponseMixin, viewsets.ModelViewSet):
     list_key = "table_data"
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset().order_by("-id")
         serializer = self.get_serializer(queryset, many=True)
-
         return self.get_response(
             data={self.list_key: serializer.data},
             message=f"{self.list_key} fetched successfully"
         )
+
     @action(detail=False, methods=["get"])
     def team_members(self, request):
-        # members = Team.objects.values("id", "member").filter().order_by("id")
-        members = Team.objects.filter(team_id=100, member__isnull=False).values("id", "member").order_by("id")
+        members = (
+            Team.objects
+            .filter(team_id=100, member__isnull=False)
+            .exclude(member="")
+            .values("id", "member")
+            .order_by("id")
+        )
         return self.get_response(
             data={"team_members": list(members)},
             message="Team members fetched successfully"
         )
 
 
-
-
-    
 class LeadViewSet(BaseSalesViewSet):
     queryset = Lead.objects.filter(is_deleted=False)
     serializer_class = LeadSerializer
 
+    @log_status(change_type="lead", new_status="Approved", comments="Lead converted to Proposal")
     @action(detail=True, methods=["post"])
     def convert(self, request, pk=None):
         lead = self.get_object()
@@ -79,7 +56,7 @@ class LeadViewSet(BaseSalesViewSet):
                 {"message": "Lead already converted"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        previous_status = lead.lead_status
+
         proposal = Proposal.objects.create(
             lead=lead,
             name=lead.name,
@@ -92,29 +69,19 @@ class LeadViewSet(BaseSalesViewSet):
         )
 
         lead.is_converted = True
-        lead.lead_status='Approved'
-        lead.save(update_fields=['is_converted','lead_status'])
-        # print(previous_status)
-        if lead.lead_status != previous_status:
-            log_status_history(
-            work_id=lead.id,
-            previous_status=previous_status,
-            new_status=lead.lead_status,
-            change_type="lead",
-            team_member_id=lead.team_member_id,
-            comments="Lead created"
-        )
+        lead.lead_status = "Approved"
+        lead.save(update_fields=["is_converted", "lead_status"])
 
         return Response({
             "message": "Lead converted successfully",
             "proposal_id": proposal.id
         })
-# decline of a lead here.
+
+    @log_status(change_type="lead", new_status="updated", comments="Lead updated")
     @action(detail=True, methods=["put"])
     def update_lead(self, request, pk=None):
-
         lead = self.get_object()
-        previous_status= lead.lead_status
+
         if lead.is_converted:
             return Response(
                 {"message": "Converted lead cannot be modified"},
@@ -122,62 +89,30 @@ class LeadViewSet(BaseSalesViewSet):
             )
 
         allowed_fields = [
-            "name",
-            "title",
-            "date",
-            "division",
-            "client",
-            "email",
-            "phone",
-            "lead_status",
-            "lead_source",
-            "last_activity",
-            "pic",
+            "name", "title", "date", "division", "client",
+            "email", "phone", "lead_status", "lead_source",
+            "last_activity", "pic",
         ]
 
         for field in allowed_fields:
             if field in request.data:
-                setattr(
-                    lead,
-                    field,
-                    request.data[field]
-                )
+                setattr(lead, field, request.data[field])
 
         lead.save()
-        if lead.lead_status == 'Decline':
-            comments= "Lead Declined"
-        else:
-            comments= "Lead Updated"
 
-        if lead.lead_status != previous_status:
-            log_status_history(
-            work_id=lead.id,
-            previous_status=previous_status,
-            new_status=lead.lead_status,
-            change_type="lead",
-            team_member_id=lead.team_member_id,
-            comments=comments
-        )
         return Response(
-            {
-                "message": "Lead updated successfully",
-                "lead_id": lead.id
-            },
+            {"message": "Lead updated successfully", "lead_id": lead.id},
             status=status.HTTP_200_OK
         )
 
-
+    @log_status(change_type="lead", new_status="deleted", comments="Lead deleted")
     @action(detail=True, methods=["put"])
     def delete_lead(self, request, pk=None):
-
         lead = self.get_object()
 
         if lead.is_converted:
             return Response(
-                {
-                    "message":
-                    "Converted lead cannot be deleted"
-                },
+                {"message": "Converted lead cannot be deleted"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -187,79 +122,16 @@ class LeadViewSet(BaseSalesViewSet):
         return Response(
             {"message": "Lead deleted successfully"},
             status=status.HTTP_200_OK
-            )
-
-    @action(detail=False, methods=["post"], url_path="bulk_insert")
-    def bulk_insert(self, request):
-        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-        SYSTEM_API_DIR = os.path.normpath(os.path.join(BASE_DIR, ".."))
-        file_path = os.path.join(SYSTEM_API_DIR, "CRM_draft1_29.06.26.xlsx")
-
-        if not os.path.exists(file_path):
-            return Response(
-                {"message": "Excel file not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        created_count = 0
-        failed_rows = []
-
-        wb = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
-        ws = wb["Leads"]
-        rows = ws.iter_rows(values_only=True)
-        raw_headers = next(rows)
-        headers = [h.strip() if isinstance(h, str) else h for h in raw_headers]
-
-        for i, row in enumerate(rows, start=1):
-            try:
-                row_dict = dict(zip(headers, row))
-
-                Lead.objects.create(
-                    name=row_dict.get("Name"),
-                    title=row_dict.get("Title"),
-                    division=row_dict.get("Division"),
-                    client=row_dict.get("Client"),
-                    email=row_dict.get("Email"),
-                    phone=row_dict.get("Phone"),
-                    lead_status = row_dict.get("Lead status"),
-                    pic=row_dict.get("PIC"),
-                    is_converted=True,
-                )
-                # if 
-                # Proposal.objects.create(
-                #     name=row_dict.get("Name"),
-                #     title=row_dict.get("Title"),
-                #     division=row_dict.get("Division"),
-                #     client=row_dict.get("Client"),
-                #     email=row_dict.get("Email"),
-                #     phone=row_dict.get("Phone"),
-                #     is_converted=False,
-                # )
-                created_count += 1
-
-            except Exception as e:
-                failed_rows.append({"row": i, "error": str(e)})
-
-        wb.close()
-
-        return Response(
-            {
-                "message": "Bulk insert completed",
-                "created": created_count,
-                "failed": len(failed_rows),
-                "errors": failed_rows,
-            },
-            status=status.HTTP_200_OK
         )
 
-    
+
 class ProposalViewSet(BaseSalesViewSet):
     queryset = Proposal.objects.filter(is_deleted=False)
     serializer_class = ProposalSerializer
 
+    @log_status(change_type="proposal", new_status="converted", comments="Proposal converted to Quotation")
     @action(detail=True, methods=["post"])
     def convert(self, request, pk=None):
-
         proposal = self.get_object()
 
         if proposal.is_converted:
@@ -287,10 +159,9 @@ class ProposalViewSet(BaseSalesViewSet):
             "quotation_id": quotation.id
         })
 
-
+    @log_status(change_type="proposal", new_status="updated", comments="Proposal updated")
     @action(detail=True, methods=["put"])
     def update_proposal(self, request, pk=None):
-
         proposal = self.get_object()
 
         if proposal.is_converted:
@@ -300,25 +171,13 @@ class ProposalViewSet(BaseSalesViewSet):
             )
 
         allowed_fields = [
-            "name",
-            "title",
-            "date",
-            "division",
-            "client",
-            "email",
-            "phone",
-            "remarks",
-            "proposal_number",
-            "pic_for_proposal",
+            "name", "title", "date", "division", "client",
+            "email", "phone", "remarks", "proposal_number", "pic_for_proposal",
         ]
 
         for field in allowed_fields:
             if field in request.data:
-                setattr(
-                    proposal,
-                    field,
-                    request.data[field]
-                )
+                setattr(proposal, field, request.data[field])
 
         if "attachment" in request.FILES:
             proposal.attachment = request.FILES["attachment"]
@@ -326,10 +185,7 @@ class ProposalViewSet(BaseSalesViewSet):
         proposal.save()
 
         return Response(
-            {
-                "message": "Proposal updated successfully",
-                "proposal_id": proposal.id
-            },
+            {"message": "Proposal updated successfully", "proposal_id": proposal.id},
             status=status.HTTP_200_OK
         )
 
@@ -405,17 +261,9 @@ class QuotationViewSet(BaseSalesViewSet):
             "meta": {}
         }
     )
-
-
+    @log_status(change_type="quotation", new_status="revised", comments="Quotation revised to next version")
     @action(detail=True, methods=["post"])
     def revise(self, request, pk=None):
-        """
-        Create next quotation version.
-        Example:
-        V1 -> V2
-        V2 -> V3
-        """
-
         quotation = self.get_object()
 
         if quotation.is_converted:
@@ -433,28 +281,28 @@ class QuotationViewSet(BaseSalesViewSet):
 
         if quotation.id != latest_version.id:
             return Response(
-                {
-                    "message": (
-                        f"Only latest quotation "
-                        f"(Version {latest_version.version}) "
-                        f"can be revised"
-                    )
-                },
+                {"message": f"Only latest quotation (Version {latest_version.version}) can be revised"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
         is_converted = request.data.get("is_converted")
-        if is_converted:
-            new_quotation = Quotation.objects.create(
-                proposal=quotation.proposal,
-                version=quotation.version + 1,
-                name=quotation.name,
-                title=quotation.title,
-                division=quotation.division,
-                client=quotation.client,
-                email=quotation.email,
-                phone=quotation.phone,
-                remarks=quotation.remarks,
+        if not is_converted:
+            return Response(
+                {"message": "is_converted is required to revise"},
+                status=status.HTTP_400_BAD_REQUEST
             )
+
+        new_quotation = Quotation.objects.create(
+            proposal=quotation.proposal,
+            version=quotation.version + 1,
+            name=quotation.name,
+            title=quotation.title,
+            division=quotation.division,
+            client=quotation.client,
+            email=quotation.email,
+            phone=quotation.phone,
+            remarks=quotation.remarks,
+        )
 
         return Response(
             {
@@ -465,11 +313,9 @@ class QuotationViewSet(BaseSalesViewSet):
             status=status.HTTP_201_CREATED
         )
 
-    
-    
+    @log_status(change_type="quotation", new_status="updated", comments="Quotation updated")
     @action(detail=True, methods=["put"])
     def update_quotation(self, request, pk=None):
-
         quotation = self.get_object()
 
         if quotation.is_converted:
@@ -478,24 +324,10 @@ class QuotationViewSet(BaseSalesViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        quotation.quotation_number = request.data.get(
-            "quotation_number",
-            quotation.quotation_number
-        )
-
-        quotation.status = request.data.get(
-            "status",
-            quotation.status
-        )
-
-        quotation.amount = request.data.get(
-            "amount",
-            quotation.amount
-        )
-        quotation.remarks = request.data.get(
-            "remarks",
-            quotation.remarks
-        )
+        quotation.quotation_number = request.data.get("quotation_number", quotation.quotation_number)
+        quotation.status = request.data.get("status", quotation.status)
+        quotation.amount = request.data.get("amount", quotation.amount)
+        quotation.remarks = request.data.get("remarks", quotation.remarks)
         quotation.save()
 
         return Response(
@@ -510,10 +342,9 @@ class QuotationViewSet(BaseSalesViewSet):
             status=status.HTTP_200_OK
         )
 
-
+    @log_status(change_type="quotation", new_status="phase_updated", comments="Quotation phase updated")
     @action(detail=True, methods=["put"])
     def update_phase(self, request, pk=None):
-
         quotation = self.get_object()
         phase = int(request.data.get("phase", 1))
 
@@ -525,7 +356,6 @@ class QuotationViewSet(BaseSalesViewSet):
 
         created = []
 
-        # Always start from latest version of the proposal
         current = (
             Quotation.objects
             .filter(proposal=quotation.proposal)
@@ -533,14 +363,10 @@ class QuotationViewSet(BaseSalesViewSet):
             .first()
         )
 
-        # Create missing versions up to requested phase
         while current.version < min(phase, 3):
-
             current.is_converted = True
             current.save(update_fields=["is_converted"])
-
             next_version = current.version + 1
-
             current = Quotation.objects.create(
                 proposal=current.proposal,
                 version=next_version,
@@ -552,21 +378,13 @@ class QuotationViewSet(BaseSalesViewSet):
                 phone=current.phone,
                 remarks=current.remarks,
             )
-
             created.append(f"Quotation V{next_version}")
 
-        # Phase 4 = Purchase Order
         if phase == 4:
-
-            po_exists = PurchaseOrder.objects.filter(
-                quotation=current
-            ).exists()
-
+            po_exists = PurchaseOrder.objects.filter(quotation=current).exists()
             if not po_exists:
-
                 current.is_converted = True
                 current.save(update_fields=["is_converted"])
-
                 po = PurchaseOrder.objects.create(
                     quotation=current,
                     name=current.name,
@@ -577,69 +395,55 @@ class QuotationViewSet(BaseSalesViewSet):
                     phone=current.phone,
                     remarks=current.remarks,
                 )
-
-                created.append(
-                    f"Purchase Order #{po.id}"
-                )
+                created.append(f"Purchase Order #{po.id}")
+        comments = "Purchase Order created" if phase == 4 else "Quotation phase updated"
+        
+        log_status_history(
+            work_id=quotation.id,
+            previous_status="Quotation phase updated",
+            new_status=f"phase_{phase}",
+            change_type="quotation",
+            team_member_id=quotation.team_member_id,
+            comments=comments)
+        
 
         return Response(
-            {
-                "message": "Phase updated successfully",
-                "current_version": current.version,
-                "created": created
-            },
+            {"message": "Phase updated successfully", "current_version": current.version, "created": created},
             status=status.HTTP_200_OK
         )
-    
 
+    @log_status(change_type="quotation", new_status="deleted", comments="Quotation deleted")
     @action(detail=True, methods=["put"])
     def delete_quotation(self, request, pk=None):
-
         quotation = self.get_object()
-
         quotation.is_deleted = True
         quotation.save(update_fields=["is_deleted"])
+        return Response({"message": "Quotation deleted successfully"})
 
-        return Response({
-            "message": "Quotation deleted successfully"
-    })
 
-    
 class PurchaseOrderViewSet(BaseSalesViewSet):
     queryset = PurchaseOrder.objects.all()
     serializer_class = PurchaseOrderSerializer
     list_key = "purchase_orders"
 
+    @log_status(change_type="purchase_order", new_status="updated", comments="Purchase Order updated")
     @action(detail=True, methods=["put"])
     def update_purchase(self, request, pk=None):
-
         purchase_order = self.get_object()
 
-        allowed_fields = [
-            "remarks",
-            "purchase_order_number",
-            "amount",
-        ]
+        allowed_fields = ["remarks", "purchase_order_number", "amount"]
 
         for field in allowed_fields:
             if field in request.data:
-                setattr(
-                    purchase_order,
-                    field,
-                    request.data[field]
-                )
+                setattr(purchase_order, field, request.data[field])
 
         if "attachment" in request.FILES:
             purchase_order.attachment = request.FILES["attachment"]
 
         try:
             purchase_order.save()
-
         except Exception as e:
-            return Response(
-                {"message": str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
             {
