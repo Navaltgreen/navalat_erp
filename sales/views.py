@@ -3,10 +3,9 @@ from .serializers import (
     LeadSerializer, ProposalSerializer,
     QuotationSerializer, PurchaseOrderSerializer
 )
-from .utils1 import log_status_history, log_status
+from .utils import log_status_history, log_status
 
-import openpyxl
-import os
+
 
 from rest_framework.decorators import action
 from rest_framework.response import Response
