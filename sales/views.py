@@ -14,7 +14,8 @@ from .serializers import (
 import openpyxl
 import os
 
-from .utils import log_status_history
+from .utils import log_status_history, log_status
+
 
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -70,6 +71,7 @@ class LeadViewSet(BaseSalesViewSet):
     queryset = Lead.objects.filter(is_deleted=False)
     serializer_class = LeadSerializer
 
+    @log_status(change_type="lead", new_status="Approved", comments="Lead converted to Proposal")
     @action(detail=True, methods=["post"])
     def convert(self, request, pk=None):
         lead = self.get_object()
@@ -110,6 +112,7 @@ class LeadViewSet(BaseSalesViewSet):
             "proposal_id": proposal.id
         })
 # decline of a lead here.
+    @log_status(change_type="lead", new_status="updated", comments="Lead updated")
     @action(detail=True, methods=["put"])
     def update_lead(self, request, pk=None):
 
@@ -166,7 +169,7 @@ class LeadViewSet(BaseSalesViewSet):
             status=status.HTTP_200_OK
         )
 
-
+    @log_status(change_type="lead", new_status="deleted", comments="Lead deleted")
     @action(detail=True, methods=["put"])
     def delete_lead(self, request, pk=None):
 
@@ -189,74 +192,13 @@ class LeadViewSet(BaseSalesViewSet):
             status=status.HTTP_200_OK
             )
 
-    @action(detail=False, methods=["post"], url_path="bulk_insert")
-    def bulk_insert(self, request):
-        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-        SYSTEM_API_DIR = os.path.normpath(os.path.join(BASE_DIR, ".."))
-        file_path = os.path.join(SYSTEM_API_DIR, "CRM_draft1_29.06.26.xlsx")
-
-        if not os.path.exists(file_path):
-            return Response(
-                {"message": "Excel file not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        created_count = 0
-        failed_rows = []
-
-        wb = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
-        ws = wb["Leads"]
-        rows = ws.iter_rows(values_only=True)
-        raw_headers = next(rows)
-        headers = [h.strip() if isinstance(h, str) else h for h in raw_headers]
-
-        for i, row in enumerate(rows, start=1):
-            try:
-                row_dict = dict(zip(headers, row))
-
-                Lead.objects.create(
-                    name=row_dict.get("Name"),
-                    title=row_dict.get("Title"),
-                    division=row_dict.get("Division"),
-                    client=row_dict.get("Client"),
-                    email=row_dict.get("Email"),
-                    phone=row_dict.get("Phone"),
-                    lead_status = row_dict.get("Lead status"),
-                    pic=row_dict.get("PIC"),
-                    is_converted=True,
-                )
-                # if 
-                # Proposal.objects.create(
-                #     name=row_dict.get("Name"),
-                #     title=row_dict.get("Title"),
-                #     division=row_dict.get("Division"),
-                #     client=row_dict.get("Client"),
-                #     email=row_dict.get("Email"),
-                #     phone=row_dict.get("Phone"),
-                #     is_converted=False,
-                # )
-                created_count += 1
-
-            except Exception as e:
-                failed_rows.append({"row": i, "error": str(e)})
-
-        wb.close()
-
-        return Response(
-            {
-                "message": "Bulk insert completed",
-                "created": created_count,
-                "failed": len(failed_rows),
-                "errors": failed_rows,
-            },
-            status=status.HTTP_200_OK
-        )
-
+    
     
 class ProposalViewSet(BaseSalesViewSet):
     queryset = Proposal.objects.filter(is_deleted=False)
     serializer_class = ProposalSerializer
 
+    @log_status(change_type="proposal", new_status="converted", comments="Proposal converted to Quotation")
     @action(detail=True, methods=["post"])
     def convert(self, request, pk=None):
 
@@ -287,7 +229,7 @@ class ProposalViewSet(BaseSalesViewSet):
             "quotation_id": quotation.id
         })
 
-
+    @log_status(change_type="proposal", new_status="updated", comments="Proposal updated")
     @action(detail=True, methods=["put"])
     def update_proposal(self, request, pk=None):
 
@@ -406,7 +348,7 @@ class QuotationViewSet(BaseSalesViewSet):
         }
     )
 
-
+    @log_status(change_type="quotation", new_status="revised", comments="Quotation revised to next version")
     @action(detail=True, methods=["post"])
     def revise(self, request, pk=None):
         """
@@ -466,7 +408,7 @@ class QuotationViewSet(BaseSalesViewSet):
         )
 
     
-    
+    @log_status(change_type="quotation", new_status="updated", comments="Quotation updated")
     @action(detail=True, methods=["put"])
     def update_quotation(self, request, pk=None):
 
@@ -510,7 +452,7 @@ class QuotationViewSet(BaseSalesViewSet):
             status=status.HTTP_200_OK
         )
 
-
+    @log_status(change_type="quotation", new_status="phase_updated", comments="Quotation phase updated")
     @action(detail=True, methods=["put"])
     def update_phase(self, request, pk=None):
 
@@ -591,7 +533,7 @@ class QuotationViewSet(BaseSalesViewSet):
             status=status.HTTP_200_OK
         )
     
-
+    @log_status(change_type="quotation", new_status="deleted", comments="Quotation deleted")
     @action(detail=True, methods=["put"])
     def delete_quotation(self, request, pk=None):
 
@@ -610,6 +552,7 @@ class PurchaseOrderViewSet(BaseSalesViewSet):
     serializer_class = PurchaseOrderSerializer
     list_key = "purchase_orders"
 
+    @log_status(change_type="purchase_order", new_status="updated", comments="Purchase Order updated")
     @action(detail=True, methods=["put"])
     def update_purchase(self, request, pk=None):
 
