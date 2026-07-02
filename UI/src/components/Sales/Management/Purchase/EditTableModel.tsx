@@ -48,18 +48,17 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
             if (values.attachment?.fileList?.length) {
               const file = values.attachment.fileList[0].originFileObj;
 
-              const uploadResponse = await uploadDocument(file);
-
-              fileUrl = uploadResponse.s3Url;
+              fileUrl = await uploadDocument(file);
             }
 
             updateProposalMutate(
               {
                 id: editData.id,
                 payload: {
-                  fileUrl: fileUrl,
+                  attachment: fileUrl,
                   remarks: values.remarks,
                   proposal_number: editData.proposal_no ?? 0,
+                  pic: values.pic,
                 },
               },
               {

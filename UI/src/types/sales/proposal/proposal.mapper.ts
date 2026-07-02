@@ -16,10 +16,11 @@ export function mapLeadsResponseToModel(
     client: proposal.client ?? "",
     email: proposal.email ?? "",
     phone: proposal.phone ?? "",
-    proposal_no: proposal.proposal_number ?? 0,
+    proposal_no: proposal.proposal_number ?? null,
     pic: proposal.pic_for_proposal ?? "",
     attachments: proposal.attachment ?? "",
     remark: proposal.remarks ?? "",
+    proposal_status: proposal.proposal_status ?? "",
 
     request_for_sales_quotation: proposal.is_converted ?? false,
   };

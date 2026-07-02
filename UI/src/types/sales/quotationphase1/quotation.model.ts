@@ -20,6 +20,7 @@ export type QuotationModel = {
   pic: string;
   request_for_sales_quotation: boolean;
   version: number;
+  quotation_status: string;
 };
 
 export type QuotationListModel = {

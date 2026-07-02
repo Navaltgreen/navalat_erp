@@ -7,8 +7,9 @@ import { hasRouteAccess } from "../../utils/auth";
 import { appRoutes, type RouteConfig } from "../../router/routes";
 import { Typography } from "antd";
 
-const { Sider } = Layout;
 const { Title } = Typography;
+
+const { Sider } = Layout;
 
 const siderStyle: React.CSSProperties = {
   overflow: "auto",
@@ -74,8 +75,15 @@ function AppShellSiderMenu() {
 
   return (
     <Sider width={siderWidth} style={siderStyle}>
-      <div style={{ padding: "2px", textAlign: "center" }}>
-        <Title level={3}>Navix</Title>
+      <div
+        style={{
+          padding: "4px",
+          textAlign: "center",
+          height: "52px",
+          color: "white",
+        }}
+      >
+        <Title level={2}> Navix</Title>
       </div>
       <Menu
         className="app-sider-menu"

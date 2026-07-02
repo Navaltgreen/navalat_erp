@@ -17,6 +17,7 @@ export type ProposalResponseItem = {
   pic_for_proposal?: string | null;
   attachment?: string | null;
   lead?: string | null;
+  proposal_status?: "Pending" | "Approved" | "Declined";
 };
 
 export type ProposalResponse = {

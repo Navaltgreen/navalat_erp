@@ -24,6 +24,7 @@ export function mapQuotationResponseToModel(
     remark: quotation.remarks ?? "",
     request_for_sales_quotation: quotation.is_converted ?? false,
     version: quotation.version ?? 0,
+    quotation_status: quotation.quotation_status ?? "",
   };
 }
 export function mapQuotationResponseToListModel(

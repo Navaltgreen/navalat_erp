@@ -5,12 +5,13 @@ import { proposalsQueryKeys } from "../proposal/get.query";
 type RequestProposalPayload = {
   id: number;
   is_converted: boolean;
+  lead_status: "Approved" | "Declined" | "Pending";
 };
 export function useRequestProposalStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, is_converted }: RequestProposalPayload) =>
-      requestProposalStatus(id, { is_converted }),
+    mutationFn: ({ id, is_converted, lead_status }: RequestProposalPayload) =>
+      requestProposalStatus(id, { is_converted, lead_status }),
 
     onSuccess: async () => {
       await queryClient.invalidateQueries({

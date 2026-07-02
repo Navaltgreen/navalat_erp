@@ -19,4 +19,5 @@ export type proposalDataType = {
   id: number;
   remark: string;
   proposal_no?: number;
+  pic?: string;
 };

@@ -13,6 +13,7 @@ import {
 import { useUpdateLeadMutation } from "../../../../query/sales/management/leads/update.query";
 import type { DataType } from "../../../../types/sales/leads/leads.edit.request";
 import { useEffect } from "react";
+import { useSalesTeamMembersStore } from "../../../../store/sales/team-members.store";
 // import { DatePicker } from "antd";
 
 type EditTableModelProps = {
@@ -27,7 +28,7 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
   editData,
 }) => {
   const { mutate: updateLeadMutate, isPending } = useUpdateLeadMutation();
-
+ const members = useSalesTeamMembersStore((state) => state.data);
   const [form] = Form.useForm();
   useEffect(() => {
     if (editData) {
@@ -144,10 +145,10 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
               <Form.Item label="PIC" name="pic" rules={[{ required: true }]}>
                 <Select
                   placeholder="Select PIC"
-                  options={[
-                    { label: "John Smith", value: "john" },
-                    { label: "Sarah Johnson", value: "sarah" },
-                  ]}
+                  options={members.map((member) => ({
+                    label: member.name,
+                    value: String(member.id),
+                  }))}
                 />
               </Form.Item>
             </Col>
@@ -191,7 +192,7 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
               </Form.Item>
             </Col> */}
 
-            <Col span={12}>
+            {/* <Col span={12}>
               <Form.Item
                 label="Lead Status"
                 name="lead_status"
@@ -207,7 +208,7 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
                   ]}
                 />
               </Form.Item>
-            </Col>
+            </Col> */}
           </Row>
 
           <Form.Item label="Remarks" name="remark">

@@ -3,7 +3,7 @@ export type CreateLeadRequest = {
   title: string;
   division: string;
   client: string;
-  lead_status: string;
+  lead_status?: string;
   lead_source: string;
   email: string;
   phone: string;

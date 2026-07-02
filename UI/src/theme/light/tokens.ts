@@ -8,10 +8,11 @@ export const lightThemeConfig: ThemeConfig = {
     Layout: {
       headerBg: "#ffffff",
       siderBg: "#ffffff",
+      bodyBg: "#f5f5f5",
+      headerHeight: 52,
     },
     Menu: {
       activeBarBorderWidth: 0,
-      
     },
   },
 };

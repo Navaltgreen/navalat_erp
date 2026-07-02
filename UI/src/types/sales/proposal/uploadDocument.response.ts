@@ -1,5 +1,17 @@
 export type UploadDocumentResponse = {
-  status: string;
-  message: string;
-  s3Url: string;
+  success?: boolean;
+  status?: string;
+  message?: string;
+  meta?: Record<string, unknown>;
+  s3Url?: string;
+  url?: string;
+  image?: string;
+  file_url?: string;
+  data?: {
+    filename?: string;
+    url?: string;
+    image?: string;
+    file_url?: string;
+    s3Url?: string;
+  };
 };

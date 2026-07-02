@@ -1,8 +1,9 @@
-import { Button, Table, Flex } from "antd";
-import { useState } from "react";
+import { Button, Descriptions, Flex, Input, Select, Space, Table } from "antd";
+import { useMemo, useState } from "react";
 import type { TableProps } from "antd";
 import { Edit } from "lucide-react";
 import { useLeadsQuery } from "../../../../query/sales/management/purchase/get.query";
+import { useSalesPrefiltersQuery } from "../../../../query/sales/management/prefilters.query";
 
 import EditTableModel from "./EditTableModel";
 function PurchaseTable() {
@@ -19,18 +20,160 @@ function PurchaseTable() {
     attachments: string;
     amount: string;
     purchase_order_no: string;
+    pic?: string;
   }
 
   const { data, loading } = useLeadsQuery();
+  const { data: prefilters } = useSalesPrefiltersQuery("purchase");
   const [selectedLead, setSelectedLead] = useState<DataType | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [expandedRowKeys, setExpandedRowKeys] = useState<number[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [divisionFilter, setDivisionFilter] = useState<string | null>(null);
+  const [clientFilter, setClientFilter] = useState<string | null>(null);
+  const [picFilter, setPicFilter] = useState<string | null>(null);
+  const [purchaseOrderSearch, setPurchaseOrderSearch] = useState("");
+
+  const records = useMemo(
+    () => (data?.records ?? []) as DataType[],
+    [data?.records],
+  );
+
+  const divisionOptions = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...prefilters.division,
+          ...records
+            .map((record) => record.division)
+            .filter((value): value is string => Boolean(value)),
+        ]),
+      ).map((value) => ({ label: value, value })),
+    [prefilters.division, records],
+  );
+
+  const clientOptions = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...prefilters.client,
+          ...records
+            .map((record) => record.client)
+            .filter((value): value is string => Boolean(value)),
+        ]),
+      ).map((value) => ({ label: value, value })),
+    [prefilters.client, records],
+  );
+
+  const picOptions = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...prefilters.picForProposal,
+          ...records
+            .map((record) => record.pic)
+            .filter((value): value is string => Boolean(value)),
+        ]),
+      ).map((value) => ({ label: value, value })),
+    [prefilters.picForProposal, records],
+  );
+
+  const filteredData = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const normalizedPurchaseOrderSearch = purchaseOrderSearch
+      .trim()
+      .toLowerCase();
+
+    return records.filter((record) => {
+      if (normalizedSearch) {
+        const searchableValues = [record.name, record.title, record.date];
+        const matchesSearch = searchableValues.some((value) =>
+          String(value ?? "")
+            .toLowerCase()
+            .includes(normalizedSearch),
+        );
+
+        if (!matchesSearch) {
+          return false;
+        }
+      }
+
+      if (
+        normalizedPurchaseOrderSearch &&
+        !String(record.purchase_order_no ?? "")
+          .toLowerCase()
+          .includes(normalizedPurchaseOrderSearch)
+      ) {
+        return false;
+      }
+
+      if (
+        divisionFilter &&
+        String(record.division ?? "").toLowerCase() !==
+          divisionFilter.toLowerCase()
+      ) {
+        return false;
+      }
+
+      if (
+        clientFilter &&
+        String(record.client ?? "").toLowerCase() !== clientFilter.toLowerCase()
+      ) {
+        return false;
+      }
+
+      if (
+        picFilter &&
+        !String(record.pic ?? "")
+          .toLowerCase()
+          .includes(picFilter.toLowerCase())
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [
+    records,
+    searchTerm,
+    divisionFilter,
+    clientFilter,
+    picFilter,
+    purchaseOrderSearch,
+  ]);
+
+  const toggleExpandRow = (id: number) => {
+    setExpandedRowKeys((prev) =>
+      prev.includes(id) ? prev.filter((key) => key !== id) : [...prev, id],
+    );
+  };
+
+  const renderAttachmentLink = (attachment?: string) => {
+    if (!attachment) {
+      return "-";
+    }
+
+    return (
+      <a href={attachment} target="_blank" rel="noopener noreferrer">
+        Open Attachment
+      </a>
+    );
+  };
 
   const columns: TableProps<DataType>["columns"] = [
     {
       title: "Name",
       dataIndex: "name",
       key: "name",
-      render: (text) => <a>{text}</a>,
+      render: (text, record) => (
+        <Button
+          type="link"
+          style={{ padding: 0, height: "auto" }}
+          onClick={() => toggleExpandRow(record.id)}
+        >
+          {text}
+        </Button>
+      ),
     },
     {
       title: "Title",
@@ -42,27 +185,27 @@ function PurchaseTable() {
       dataIndex: "date",
       key: "date",
     },
-    {
-      title: "Division",
-      dataIndex: "division",
-      key: "division",
-    },
+    // {
+    //   title: "Division",
+    //   dataIndex: "division",
+    //   key: "division",
+    // },
     {
       title: "Client",
       dataIndex: "client",
       key: "client",
     },
 
-    {
-      title: "Email",
-      dataIndex: "email",
-      key: "email",
-    },
-    {
-      title: "Phone",
-      dataIndex: "phone",
-      key: "phone",
-    },
+    // {
+    //   title: "Email",
+    //   dataIndex: "email",
+    //   key: "email",
+    // },
+    // {
+    //   title: "Phone",
+    //   dataIndex: "phone",
+    //   key: "phone",
+    // },
     {
       title: "Purchase Order No.",
       dataIndex: "purchase_order_no",
@@ -73,18 +216,18 @@ function PurchaseTable() {
       dataIndex: "amount",
       key: "amount",
     },
-    {
-      title: "Attachments",
-      dataIndex: "attachments",
-      key: "attachments",
-    },
+    // {
+    //   title: "Attachments",
+    //   dataIndex: "attachments",
+    //   key: "attachments",
+    // },
 
-    {
-      title: "Remark",
-      dataIndex: "remark",
-      key: "remark",
-      ellipsis: false,
-    },
+    // {
+    //   title: "Remark",
+    //   dataIndex: "remark",
+    //   key: "remark",
+    //   ellipsis: false,
+    // },
 
     {
       title: "Edit",
@@ -187,13 +330,86 @@ function PurchaseTable() {
         onClose={() => setIsEditModalOpen(false)}
         editData={selectedLead}
       />
+      <Space wrap style={{ marginBottom: 12 }}>
+        <Input
+          allowClear
+          placeholder="Search name, title, date"
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+          style={{ width: 220 }}
+        />
+        <Input
+          allowClear
+          placeholder="Search purchase order number"
+          value={purchaseOrderSearch}
+          onChange={(event) => setPurchaseOrderSearch(event.target.value)}
+          style={{ width: 240 }}
+        />
+        <Select
+          allowClear
+          placeholder="Division"
+          value={divisionFilter ?? undefined}
+          onChange={(value) => setDivisionFilter(value ?? null)}
+          options={divisionOptions}
+          style={{ width: 180 }}
+        />
+        <Select
+          allowClear
+          placeholder="Client"
+          value={clientFilter ?? undefined}
+          onChange={(value) => setClientFilter(value ?? null)}
+          options={clientOptions}
+          style={{ width: 180 }}
+        />
+        <Select
+          allowClear
+          placeholder="PIC"
+          value={picFilter ?? undefined}
+          onChange={(value) => setPicFilter(value ?? null)}
+          options={picOptions}
+          style={{ width: 200 }}
+        />
+      </Space>
       <Table<DataType>
+        rowKey="id"
         columns={columns}
         size="small"
-        dataSource={(data?.records ?? []) as DataType[]}
-        scroll={{ x: 2300 }}
+        dataSource={filteredData}
+        scroll={{ x: "auto" }}
         title={() => "Purchase"}
         loading={loading}
+        expandable={{
+          expandedRowKeys,
+          expandedRowRender: (record) => (
+            <Descriptions size="small" column={2} bordered>
+              <Descriptions.Item label="Phone">
+                {record.phone}
+              </Descriptions.Item>
+              <Descriptions.Item label="Email">
+                {record.email}
+              </Descriptions.Item>
+              <Descriptions.Item label="Division">
+                {record.division || "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Attachments">
+                {renderAttachmentLink(record.attachments)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Remark" span={2}>
+                {record.remark || "-"}
+              </Descriptions.Item>
+            </Descriptions>
+          ),
+          onExpand: (expanded, record) => {
+            if (expanded) {
+              setExpandedRowKeys((prev) =>
+                prev.includes(record.id) ? prev : [...prev, record.id],
+              );
+              return;
+            }
+
+            setExpandedRowKeys((prev) => prev.filter((id) => id !== record.id));
+          },
+        }}
       />
     </>
   );

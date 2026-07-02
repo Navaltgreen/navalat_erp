@@ -4,7 +4,7 @@ import ProposalTable from "./ProposalTable";
 function Proposal() {
   return (
     <Row>
-      <Col>
+      <Col span={24}>
         <ProposalTable />
       </Col>
     </Row>

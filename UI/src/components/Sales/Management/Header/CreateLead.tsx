@@ -13,11 +13,13 @@ import {
 import { DatePicker } from "antd";
 
 import { useCreateLeadMutation } from "../../../../query/sales/management/leads/post.query";
+import { useSalesTeamMembersStore } from "../../../../store/sales/team-members.store";
 import { showNotification } from "../utils/showNotification";
 
 const CreateLead: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { mutate, isPending } = useCreateLeadMutation();
+  const members = useSalesTeamMembersStore((state) => state.data);
 
   const showModal = () => {
     setIsModalOpen(true);
@@ -50,12 +52,16 @@ const CreateLead: React.FC = () => {
           // onFinish={(values) => console.log(values)}
           disabled={isPending}
           onFinish={(values) => {
+            const { lead_status, ...restValues } = values;
             const payload = {
-              ...values,
+              ...restValues,
               last_activity: values.last_activity
                 ? values.last_activity.format("YYYY-MM-DD")
                 : null,
             };
+
+            void lead_status;
+
             mutate(payload, {
               onSuccess: () => {
                 form.resetFields();
@@ -122,24 +128,6 @@ const CreateLead: React.FC = () => {
                 <DatePicker style={{ width: "100%" }} />
               </Form.Item>
             </Col>
-
-            <Col span={12}>
-              <Form.Item
-                label="Lead Status"
-                name="lead_status"
-                rules={[{ required: true }]}
-              >
-                <Select
-                  placeholder="Select status"
-                  options={[
-                    { label: "New", value: "New" },
-                    { label: "Qualified", value: "Qualified" },
-                    { label: "Contacted", value: "Contacted" },
-                    { label: "Proposal Sent", value: "Proposal Sent" },
-                  ]}
-                />
-              </Form.Item>
-            </Col>
           </Row>
 
           <Row gutter={16}>
@@ -165,10 +153,10 @@ const CreateLead: React.FC = () => {
               <Form.Item label="PIC" name="pic" rules={[{ required: true }]}>
                 <Select
                   placeholder="Select PIC"
-                  options={[
-                    { label: "John Smith", value: "john" },
-                    { label: "Sarah Johnson", value: "sarah" },
-                  ]}
+                  options={members.map((member) => ({
+                    label: member.name,
+                    value: String(member.id),
+                  }))}
                 />
               </Form.Item>
             </Col>

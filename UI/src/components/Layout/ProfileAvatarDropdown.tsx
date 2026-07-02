@@ -6,7 +6,12 @@ import {
   Typography,
   type MenuProps,
 } from "antd";
-import { LogOut, Moon, Sun, UserRound } from "lucide-react";
+import {
+  LogOut,
+  UserRound,
+  KeyRound,
+  Palette,
+} from "lucide-react";
 import { logoutFromKeycloak } from "../../config/keycloak";
 import { useAuthStore } from "../../store/auth/store";
 import { useThemeStore } from "../../store/theme";
@@ -39,70 +44,61 @@ function ProfileAvatarDropdown() {
     await logoutFromKeycloak("/login");
   };
 
-  const menuItems: MenuProps["items"] = [
+  const menuItemsUpdated: MenuProps["items"] = [
     {
-      key: "user-info",
-      disabled: true,
+      key: "1",
       label: (
-        <div className="profile-dropdown__user">
-          <Avatar size={42} icon={<UserRound size={18} />}>
-            {initials}
-          </Avatar>
-          <div className="profile-dropdown__meta">
-            <Text strong className="profile-dropdown__name">
-              {displayName}
-            </Text>
+        <Text strong className="profile-dropdown__name">
+          {displayName}
+        </Text>
+      ),
+      disabled: false,
+      icon: <UserRound size={14} />,
+    },
+    {
+      type: "divider",
+    },
+    {
+      key: "2",
+      label: <Text>Role</Text>,
+      disabled: false,
+      icon: <KeyRound size={14} />,
 
-            <Text type="secondary" className="profile-dropdown__role">
-              Role: {roleText}
-            </Text>
-          </div>
-        </div>
+      extra: <>{roleText}</>,
+    },
+    {
+      type: "divider",
+    },
+    {
+      key: "3",
+      label: <Text>Theme</Text>,
+      icon: <Palette size={14} />,
+      disabled: false,
+      extra: (
+        <Switch
+          size="small"
+          checked={mode === "dark"}
+          onChange={(checked) => setMode(checked ? "dark" : "light")}
+          aria-label="Theme mode"
+        />
       ),
     },
     {
       type: "divider",
     },
     {
-      key: "theme",
-      label: (
-        <div
-          className="profile-dropdown__theme-row"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <div>
-            <Text className="profile-dropdown__theme-title">Appearance</Text>
-            <div className="profile-dropdown__theme-value">
-              <Space size={8}>
-                {mode === "dark" ? <Moon size={14} /> : <Sun size={14} />}
-                <span>{mode === "dark" ? "Dark" : "Light"} mode</span>
-              </Space>
-            </div>
-          </div>
-          <Switch
-            size="small"
-            checked={mode === "dark"}
-            onChange={(checked) => setMode(checked ? "dark" : "light")}
-            aria-label="Theme mode"
-          />
-        </div>
-      ),
-    },
-    {
-      type: "divider",
-    },
-    {
-      key: "logout",
+      key: "4",
       icon: <LogOut size={14} />,
       label: "Logout",
       danger: true,
       onClick: handleLogout,
     },
   ];
+  
 
   return (
     <Dropdown
-      menu={{ items: menuItems }}
+      menu={{ items: menuItemsUpdated }}
       trigger={["click"]}
       placement="bottomRight"
       arrow

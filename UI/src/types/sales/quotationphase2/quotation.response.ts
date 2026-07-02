@@ -15,7 +15,7 @@ export type QuotationResponseItem = {
   status: string | null;
   amount: string | null;
   is_converted?: boolean | null;
-
+  quotation_status: string | null;
   remarks?: string | null;
   proposal: number | null;
   pic?: string | null;

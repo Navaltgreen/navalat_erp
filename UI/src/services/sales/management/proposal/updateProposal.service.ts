@@ -1,6 +1,11 @@
+import axios from "axios";
 import { dataApi } from "../../../../config/axios/dataApi";
 
 import type { CreateProposalRequest } from "../../../../types/sales/proposal/proposal.post.request";
+
+type ProposalNumberCheckResponse = {
+  check: boolean;
+};
 
 export async function updateProposal(
   id: number,
@@ -12,4 +17,31 @@ export async function updateProposal(
   );
 
   return response;
+}
+
+export async function checkProposalNumber(
+  id: number,
+  proposalNumber: number,
+): Promise<boolean> {
+  try {
+    const response = await dataApi.put<ProposalNumberCheckResponse>(
+      `api/v1/sales/proposals/${id}/update_proposal/`,
+      {
+        proposal_number: proposalNumber,
+      },
+      {
+        params: {
+          check: "proposal_number",
+        },
+      },
+    );
+
+    return response.data.check;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 400) {
+      return true;
+    }
+
+    throw error;
+  }
 }

@@ -1,9 +1,10 @@
-import { Button, Modal, Form, Input, Space, Upload } from "antd";
+import { Button, Modal, Form, Input, Space, Upload, Select } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { useUpdateProposalMutation } from "../../../../query/sales/management/quotationphase1/update.query.ts";
 import { useUploadDocumentMutation } from "../../../../query/sales/management/proposal/uploadfile.query.ts";
 import type { proposalDataType } from "../../../../types/sales/leads/leads.edit.request";
 import { useEffect } from "react";
+import { useSalesTeamMembersStore } from "../../../../store/sales/team-members.store.ts";
 
 type EditTableModelProps = {
   open: boolean;
@@ -19,7 +20,7 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
   const { mutate: updateProposalMutate, isPending } =
     useUpdateProposalMutation();
   const { mutateAsync: uploadDocument } = useUploadDocumentMutation();
-
+  const members = useSalesTeamMembersStore((state) => state.data);
   const [form] = Form.useForm();
   useEffect(() => {
     if (editData) {
@@ -48,18 +49,17 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
             if (values.attachment?.fileList?.length) {
               const file = values.attachment.fileList[0].originFileObj;
 
-              const uploadResponse = await uploadDocument(file);
-
-              fileUrl = uploadResponse.s3Url;
+              fileUrl = await uploadDocument(file);
             }
 
             updateProposalMutate(
               {
                 id: editData.id,
                 payload: {
-                  fileUrl: fileUrl,
+                  attachment: fileUrl,
                   remarks: values.remarks,
                   proposal_number: editData.proposal_no ?? 0,
+                  pic: values.pic,
                 },
               },
               {
@@ -79,7 +79,15 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
               <Button icon={<UploadOutlined />}>Select File</Button>
             </Upload>
           </Form.Item>
-
+          <Form.Item label="PIC" name="pic" rules={[{ required: true }]}>
+            <Select
+              placeholder="Select PIC"
+              options={members.map((member) => ({
+                label: member.name,
+                value: String(member.id),
+              }))}
+            />
+          </Form.Item>
           <Form.Item label="Remarks" name="remarks">
             <Input.TextArea rows={4} placeholder="Enter remarks" />
           </Form.Item>

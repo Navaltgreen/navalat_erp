@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateQuotation } from "../../../../services/sales/management/quotationphase1/updateQuotation.service";
+import { updateQuotation } from "../../../../services/sales/management/quotationphase2/updateQuotation.service";
 import type { CreateProposalRequest } from "../../../../types/sales/proposal/proposal.post.request";
 export function useUpdateProposalMutation() {
   const queryClient = useQueryClient();

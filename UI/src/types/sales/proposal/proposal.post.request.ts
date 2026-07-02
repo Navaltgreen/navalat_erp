@@ -1,5 +1,6 @@
 export type CreateProposalRequest = {
-  fileUrl: string;
+  attachment: string;
   remarks: string;
-  proposal_number: number;
+  proposal_number: number | null;
+  pic: string;
 };

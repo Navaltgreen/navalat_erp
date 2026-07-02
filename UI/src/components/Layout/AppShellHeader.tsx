@@ -1,9 +1,25 @@
 import { Layout } from "antd";
+import { useQueryToStoreSync } from "../../hooks/useQueryToStoreSync";
+import { useTeamsQuery } from "../../query/global/query";
+import { useGlobalStore } from "../../store/global/store";
 import ProfileAvatarDropdown from "./ProfileAvatarDropdown";
 
 const { Header } = Layout;
 
 function AppShellHeader() {
+  const { setTeams, setError, resetTeams } = useGlobalStore();
+  const { data: teams, error } = useTeamsQuery();
+
+  useQueryToStoreSync({
+    query: {
+      data: teams,
+      error,
+    },
+    setData: setTeams,
+    setError,
+    resetData: resetTeams,
+  });
+
   return (
     <Header
       style={{
@@ -11,8 +27,6 @@ function AppShellHeader() {
         display: "flex",
         alignItems: "center",
         justifyContent: "flex-end",
-        height: "48px",
-        borderBottom: "1px solid var(--border-color)",
       }}
     >
       <ProfileAvatarDropdown />

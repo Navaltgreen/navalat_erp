@@ -1,6 +1,6 @@
 import { Button, Col, Row } from "antd";
 import SalePhasesSelect from "./SalePhasesSelect";
-import DateRangePicker from "./DateRangePicker";
+// import DateRangePicker from "./DateRangePicker";
 import CreateLead from "./CreateLead";
 import { useLeadsQuery } from "../../../../query/sales/management/leads/leads_data.query";
 import { exportLeadsToExcel } from "../utils/exportLeadsToExcel";
@@ -16,7 +16,7 @@ function Header() {
         <SalePhasesSelect />
       </Col>
       <Col>
-        <DateRangePicker />
+        {/* <DateRangePicker /> */}
       </Col>
       <Col>
         <CreateLead />
