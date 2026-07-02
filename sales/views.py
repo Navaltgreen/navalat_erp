@@ -439,7 +439,7 @@ class QuotationViewSet(BaseSalesViewSet):
             quotation.remarks
         )
         quotation.save()
-
+        
         return Response(
             {
                 "message": "Quotation updated successfully",
@@ -523,6 +523,15 @@ class QuotationViewSet(BaseSalesViewSet):
                 created.append(
                     f"Purchase Order #{po.id}"
                 )
+        comments = "Purchase Order created" if phase == 4 else "Quotation phase updated"
+        
+        log_status_history(
+            work_id=quotation.id,
+            previous_status="Quotation phase updated",
+            new_status=f"phase_{phase}",
+            change_type="quotation",
+            team_member_id=quotation.team_member_id,
+            comments=comments)
 
         return Response(
             {
