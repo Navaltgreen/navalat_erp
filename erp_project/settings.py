@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'corsheaders',
 
     # Local apps
+    'auth_core',
     'core',
     'clients',
     'projects',
@@ -69,6 +70,13 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 'auth_core.middleware.KeycloakMiddleware'
+]
+
+KEYCLOAK_EXEMPT_PATHS = [
+    'admin/',
+    'api/schema/',
+    'api/docs/',
 ]
 
 ROOT_URLCONF = 'erp_project.urls'

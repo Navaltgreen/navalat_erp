@@ -91,53 +91,37 @@ class TeamViewSet(APIResponseMixin, viewsets.ModelViewSet):
             data={"teams": list(teams)},
             message="Team members fetched successfully"
         )
-    # api for teams in works
-    # @action(detail=False, methods=['get'], url_path='members')
-    # def get_members(self, request, *args, **kwargs):
-    #     """Get all members of a team by team id"""
-    #     team_id = request.query_params.get("team_id")
+    @action(detail=False, methods=["get"], url_path="grouped")
+    def grouped(self, request):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
 
-    #     if not team_id:
-    #         return self.get_response(
-    #             data=None,
-    #             message="team_id is required",
-    #             meta={"status_code": 400}
-    #         )
-    #     teams=TeamSerializer.get_team_members().filter(team_id=team_id)
-      
-    #     return self.get_response(
-    #         data={"teams": teams},
-    #         message="Teams fetched successfully"
-    #     )
-        # team_id = request.query_params.get('team_id')
+        teams = []
+        members = []
+        seen = set()
 
-        # if not team_id:
-        #     return self.get_response(
-        #         data=None,
-        #         message="team_id is required",
-        #         meta={"status_code": 400}
-        #     )
- 
-        # members = Team.objects.filter(team_id=team_id).exclude(member=None)
-        # if not members.exists():
-        #     return self.get_response(
-        #         data=None,
-        #         message="Team not found",
-        #         meta={"status_code": 404}
-        #     )
+        for item in serializer.data:
+            if item["team_id"] not in seen:
+                teams.append({
+                    "team_id": item["team_id"],
+                    "name": item["name"]
+                })
+                seen.add(item["team_id"])
 
-        # member_list = [
-        #     {
-        #         "id": member.id,
-        #         "name": member.member,
-        #     }
-        #     for member in members
-        # ]
+            if item["member"]:
+                members.append({
+                    "id": item["id"],
+                    "team_id": item["team_id"],
+                    "member": item["member"]
+                })
 
-        # return self.get_response(
-        #     data={"teams": member_list},
-        #     message="Team members fetched successfully"
-        # )
+        return self.get_response(
+            data={
+                "teams": teams,
+                "members": members
+            },
+            message="Grouped teams fetched successfully"
+        )
     @action(detail=False, methods=['get'], url_path='list')
     def all_teams_list(self, request):
         """Get unique teams as id + name pairs"""
@@ -145,4 +129,32 @@ class TeamViewSet(APIResponseMixin, viewsets.ModelViewSet):
         return self.get_response(
             data={"teams": teams},
             message="Teams fetched successfully"
+        )
+
+    @action(detail=False, methods=["get"], url_path="team-members")
+    def team_members(self, request):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+
+        grouped = {}
+
+        for item in serializer.data:
+            team_id = item["team_id"]
+
+            if team_id not in grouped:
+                grouped[team_id] = {
+                    "team_id": team_id,
+                    "team_name": item["name"],
+                    "members": []
+                }
+
+            if item["member"]:
+                grouped[team_id]["members"].append({
+                    "id": item["id"],
+                    "name": item["member"]
+                })
+
+        return self.get_response(
+            data={"teams": list(grouped.values())},
+            message="Teams with members fetched successfully"
         )
