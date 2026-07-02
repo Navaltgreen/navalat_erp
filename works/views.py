@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from core.api_mixins import APIResponseMixin
 from .models import Works
 from projects.models import Project
+from work_assignments.models import WorkAssignment
+from teams.models import Team
 
 from .serializers import WorkSerializer
 
@@ -19,24 +21,68 @@ class WorkViewSet(APIResponseMixin, viewsets.ModelViewSet):
     #         data=serializer.data,
     #         message="Works fetched successfully"
     #     )
+    # def list(self, request, *args, **kwargs):
+    #     """Get all works — filter by project_id if provided"""
+    #     project_id = request.query_params.get('project_id')
+
+    #     fields = ['id', 'project_id', 'category', 'subcategory', 'tab', 'status', 'images', 'description', 'comments', 'team_id','created_at','created_by','updated_at','updated_by']
+
+    #     if project_id:
+    #         queryset = Works.objects.filter(project_id=project_id)
+    #     else:
+    #         queryset = Works.objects.all()
+
+    #     # Get project names lookup {id: name}
+    #     project_ids = queryset.values_list('project_id', flat=True).distinct()
+    #     project_lookup = {p.id: p.name for p in Project.objects.filter(id__in=project_ids)}
+
+    #     work_list = []
+    #     for work in queryset.values(*fields):
+    #         work['project_name'] = project_lookup.get(work['project_id'], None)
+    #         work_list.append(work)
+
+    #     return self.get_response(data={"works": work_list}, message="Works fetched successfully")
     def list(self, request, *args, **kwargs):
         """Get all works — filter by project_id if provided"""
         project_id = request.query_params.get('project_id')
 
-        fields = ['id', 'project_id', 'category', 'subcategory', 'tab', 'status', 'images', 'description', 'comments', 'team_id','created_at','created_by','updated_at','updated_by']
+        fields = ['id', 'project_id', 'category', 'subcategory', 'tab', 'status', 'images', 'description', 'comments', 'team_id', 'created_at', 'created_by', 'updated_at', 'updated_by']
 
         if project_id:
             queryset = Works.objects.filter(project_id=project_id)
         else:
             queryset = Works.objects.all()
 
-        # Get project names lookup {id: name}
+        # Project names lookup {id: name}
         project_ids = queryset.values_list('project_id', flat=True).distinct()
         project_lookup = {p.id: p.name for p in Project.objects.filter(id__in=project_ids)}
+
+        # Assignment lookup {work_id: assignment}  ← no select_related
+        work_ids = queryset.values_list('id', flat=True)
+        assignments = WorkAssignment.objects.filter(work_id__in=work_ids)
+        assignment_lookup = {a.work_id: a for a in assignments}
+
+        # Team member names lookup {id: name}
+        team_member_ids = [a.team_member_id for a in assignments if a.team_member_id]
+        team_member_lookup = {m.id: m.member for m in Team.objects.filter(id__in=team_member_ids)}
 
         work_list = []
         for work in queryset.values(*fields):
             work['project_name'] = project_lookup.get(work['project_id'], None)
+
+            assignment = assignment_lookup.get(work['id'])
+            if assignment:
+                work['assigned_to'] = {
+                    "id": assignment.team_member_id,
+                    "name": team_member_lookup.get(assignment.team_member_id, None),
+                } if assignment.team_member_id else None
+                work['assignment_status'] = assignment.status
+                work['assignment_comments'] = assignment.comments
+            else:
+                work['assigned_to'] = None
+                work['assignment_status'] = None
+                work['assignment_comments'] = None
+
             work_list.append(work)
 
         return self.get_response(data={"works": work_list}, message="Works fetched successfully")

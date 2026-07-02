@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'corsheaders',
 
     # Local apps
+    'auth_core',
     'core',
     'clients',
     'projects',
@@ -69,6 +70,13 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 'auth_core.middleware.KeycloakMiddleware'
+]
+
+KEYCLOAK_EXEMPT_PATHS = [
+    'admin/',
+    'api/schema/',
+    'api/docs/',
 ]
 
 ROOT_URLCONF = 'erp_project.urls'
@@ -148,3 +156,7 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
+STATIC_URL = "/static/"
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
