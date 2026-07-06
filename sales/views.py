@@ -354,7 +354,7 @@ class LeadViewSet(BaseSalesViewSet):
 
     
 class ProposalViewSet(BaseSalesViewSet):
-    queryset = Proposal.objects.filter(is_deleted=False)
+    queryset = Proposal.objects.filter()
     serializer_class = ProposalSerializer
 
     @action(detail=True, methods=["post"])

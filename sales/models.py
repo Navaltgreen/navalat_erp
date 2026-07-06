@@ -33,7 +33,7 @@ class Lead(BaseModel):
         return self.name
 
 
-class Proposal(BaseModel):
+class Proposal(models.Model):
     proposal_status = models.CharField(max_length=100, blank=True, null=True,default="Pending")
 
     lead = models.ForeignKey(
