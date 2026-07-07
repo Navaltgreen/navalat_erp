@@ -48,13 +48,38 @@ from rest_framework.viewsets import ViewSet
 class BaseSalesViewSet(APIResponseMixin, viewsets.ModelViewSet):
     list_key = "table_data"
 
+    # def list(self, request, *args, **kwargs):
+    #     queryset = self.get_queryset().order_by("-id")
+    #     serializer = self.get_serializer(queryset, many=True)
+
+    #     return self.get_response(
+    #         data={self.list_key: serializer.data},
+    #         message=f"{self.list_key} fetched successfully"
+    #     )
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset().order_by("-id")
         serializer = self.get_serializer(queryset, many=True)
 
+        data = serializer.data
+
+        # Get all team members once
+        team_map = {
+            t.id: t.member
+            for t in Team.objects.filter(team_id=100)
+        }
+        
+        for item in data:
+            if "pic" in item:
+                print(team_map.get(item["pic"]))
+                item["pic"] = team_map.get(item["pic"])
+
+            # if "pic_for_proposal" in item:
+            #     print(item["pic_for_proposal"])
+            #     item["pic_for_proposal"] = team_map.get(item["pic_for_proposal"])
+        
         return self.get_response(
-            data={self.list_key: serializer.data},
-            message=f"{self.list_key} fetched successfully"
+            data={self.list_key: data},
+            message=f"{self.list_key} fetched successfully",
         )
     @action(detail=False, methods=["get"])
     def team_members(self, request):
