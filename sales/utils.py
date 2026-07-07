@@ -49,97 +49,69 @@ class StatusLogger:
         except Exception:
             return None
 
-    @staticmethod
-    def log_status_history(
-        work_id,
-        previous_status,
-        new_status,
-        change_type,
-        team_member_id=None,
-        comments=None,
-    ):
-        StatusHistory.objects.create(
-            work_id=work_id,
-            previous_status=previous_status or "",
-            status=new_status or "",
-            change_type=change_type,
-            team_member_id=team_member_id,
-            comments=comments,
-            changed_at=timezone.now(),
-        )
+    # @staticmethod
+    # def log_status_history(
+    #     work_id,
+    #     previous_status,
+    #     new_status,
+    #     change_type,
+    #     team_member_id=None,
+    #     comments=None,
+    # ):
+    #     StatusHistory.objects.create(
+    #         work_id=work_id,
+    #         previous_status=previous_status or "",
+    #         status=new_status or "",
+    #         change_type=change_type,
+    #         team_member_id=team_member_id,
+    #         comments=comments,
+    #         changed_at=timezone.now(),
+    #     )
 
     @staticmethod
-    def log_status(change_type, new_status, comments=None, get_new_status=None):
+    def log_status_change(change_type, status_field, comments=None, work_id_field=None):
         """
-        Decorator for viewset actions.
+        Decorator for viewset update actions. Logs to StatusHistory
+        ONLY if the given status_field actually changed value.
 
         Usage:
-            @StatusLogger.track(change_type="lead", new_status="converted")
-            @action(detail=True, methods=["post"])
-            def convert(self, request, pk=None):
+            @StatusLogger.log_status_change(change_type="lead", status_field="lead_status")
+            @action(detail=True, methods=["put"])
+            def update_lead(self, request, pk=None):
                 ...
 
-        Dynamic status:
-            @StatusLogger.track(
-                change_type="lead",
-                new_status="Approved",
-                get_new_status=lambda obj, req: (
-                    "Declined" if req.data.get("lead_status") == "Declined" else "Approved"
-                )
-            )
+            @StatusLogger.log_status_change(change_type="proposal", status_field="proposal_status")
+            @action(detail=True, methods=["put"])
+            def update_proposal(self, request, pk=None):
+                ...
         """
         def decorator(func):
             @functools.wraps(func)
             def wrapper(self, request, *args, **kwargs):
-                is_create = func.__name__ == "create"
-
-                if not is_create:
-                    obj = self.get_object()
-                    previous_status = (
-                        obj.lead_status
-                        if hasattr(obj, "lead_status")
-                        else ("converted" if obj.is_converted else "not converted")
-                    )
-                    work_id = obj.id
-                else:
-                    obj = None
-                    previous_status = ""
-                    work_id = None
-
-                team_member_id = (
-                    StatusLogger.get_team_member_id(request) or None
-                    # or (obj.team_member_id if obj else None)
-                )
+                obj = self.get_object()
+                previous_status = getattr(obj, status_field, None)
+                work_id = getattr(obj, work_id_field, obj.id) if work_id_field else obj.id
 
                 response = func(self, request, *args, **kwargs)
 
                 if response.status_code < 300:
-                    if is_create:
-                        work_id = (
-                            response.data.get("lead_id")
-                            or response.data.get("id")
+                    obj.refresh_from_db()   # pull the saved value after func ran
+                    new_status = getattr(obj, status_field, None)
+
+                    if new_status != previous_status:
+                        team_member_id = StatusLogger.get_team_member_id(request) or None
+                        StatusLogger.log_status_history(
+                            work_id=work_id,
+                            previous_status=previous_status,
+                            new_status=new_status,
+                            change_type=change_type,
+                            team_member_id=team_member_id,
+                            comments=comments,
                         )
 
-                    resolved_status = (
-                        get_new_status(obj, request)
-                        if get_new_status
-                        else new_status
-                    )
-
-                    StatusLogger.log_status_history(
-                        work_id=work_id,
-                        previous_status=previous_status,
-                        new_status=resolved_status,
-                        change_type=change_type,
-                        team_member_id=team_member_id,
-                        comments=comments,
-                    )
-
                 return response
-
             return wrapper
         return decorator
-
 
 # def get_team_member_id_from_request(request):
 #     print("user",request.user)           # Django user object

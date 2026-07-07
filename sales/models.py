@@ -56,7 +56,7 @@ class Proposal(models.Model):
     attachment = models.CharField(
         max_length=1000,
         unique=True,
-         blank=True,
+        blank=True,
         null=True
     )
 
