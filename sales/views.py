@@ -27,7 +27,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from core.api_mixins import APIResponseMixin
-
+from work_assignments.models import WorkAssignment
 from .models import (
     Lead,
     Proposal,
@@ -45,6 +45,7 @@ from teams.models import Team
 from rest_framework.views import APIView
 from clients.models import Client
 from rest_framework.viewsets import ViewSet
+from django.utils import timezone
 class BaseSalesViewSet(APIResponseMixin, viewsets.ModelViewSet):
     list_key = "table_data"
 
@@ -164,7 +165,7 @@ class LeadViewSet(BaseSalesViewSet):
     queryset = Lead.objects.filter(is_deleted=False)
     serializer_class = LeadSerializer
     
-    @StatusLogger.log_status(change_type="lead", new_status="Approved", comments="Lead converted to Proposal")
+    # @StatusLogger.log_status(change_type="lead", new_status="Approved", comments="Lead converted to Proposal")
     @action(detail=True, methods=["post"])
     def convert(self, request, pk=None):
         lead = self.get_object()
@@ -177,56 +178,56 @@ class LeadViewSet(BaseSalesViewSet):
         elif not request.data.get('is_converted') and request.data.get('lead_status')=='Declined':
             lead.lead_status='Declined'
             lead.save(update_fields=['is_converted','lead_status'])
-            StatusLogger.log_status_history(
-            work_id=lead.id,
-            previous_status=previous_status,
-            new_status=lead.lead_status,
-            change_type="lead_status",
-            team_member_id=request.user.team_member_id,
-            comments="Lead created" )
-            return Response({
-                "message": "Lead Declined successfully"
-            })
         else:
-           
-            proposal = Proposal.objects.create(
-                lead=lead,
-                name=lead.name,
-                title=lead.title,
-                division=lead.division,
-                client=lead.client,
-                email=lead.email,
-                phone=lead.phone,
-                remarks=lead.remarks,
-            )
+            proposals_data = request.data.get('proposals')
+
+            if not proposals_data or not isinstance(proposals_data, list):
+                return Response(
+                    {"message": "proposals must be a non-empty list"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            created_proposals = []
+            # proposals_data contain multiple proposals 
+            for proposal_data in proposals_data:
+                proposal = Proposal.objects.create(
+                    lead=lead,
+                    proposal_number=proposal_data.get('proposal_number'),
+                    pic_for_proposal=proposal_data.get('pic_for_proposal'),
+                    attachment=proposal_data.get('attachment'),
+                )
+                created_proposals.append(proposal)
+                
+                # Only create a WorkAssignment entry if a PIC was actually set on the proposal
+                if proposal.pic_for_proposal:
+                    # work = Works.objects.get(project_id=proposal.id, subcategory="Proposal")
+                    WorkAssignment.objects.create(
+                        work_id=proposal.id,
+                        assigned_date=timezone.now(),
+                        status="Assigned",
+                        team_member_id=proposal.pic_for_proposal,
+                        comments=f"Assigned on proposal creation (Proposal #{proposal.id})",
+                        # created_by=request.user.team_member_id,
+                    )
+
             lead.is_converted = True
-            lead.lead_status='Approved'
-            lead.save(update_fields=['is_converted','lead_status'])
-            # print(previous_status)
-            # if lead.lead_status != previous_status:
-            #     log_status_history(
-            #     work_id=lead.id,
-            #     previous_status=previous_status,
-            #     new_status=lead.lead_status,
-            #     change_type="lead",
-            #     team_member_id=lead.team_member_id,
-            #     comments="Lead created"
-            # )
+            lead.lead_status = 'Approved'
+            lead.save(update_fields=['is_converted', 'lead_status'])
 
             return Response({
                 "message": "Lead converted successfully",
-                "proposal_id": proposal.id
-            })
+                "proposal_ids": [p.id for p in created_proposals]
+                # "proposals": ProposalSerializer(created_proposals, many=True).data
+            }, status=status.HTTP_201_CREATED)
+           
 
-
-
-# decline of a lead here.
-    @StatusLogger.log_status(change_type="lead", new_status="updated", comments="Lead updated")
+    @StatusLogger.log_status_change(change_type="lead", status_field="lead_status", comments="Lead updated")
     @action(detail=True, methods=["put"])
     def update_lead(self, request, pk=None):
 
         lead = self.get_object()
         previous_status = lead.lead_status
+        previous_pic = lead.pic   # To know pic has changed or not
 
         if lead.is_converted:
             return Response(
@@ -251,12 +252,29 @@ class LeadViewSet(BaseSalesViewSet):
             if field in request.data:
                 setattr(lead, field, request.data[field])
 
+        pic_changed = False
+
         # Handle PIC separately
         if "pic" in request.data:
             team = get_object_or_404(Team, pk=request.data["pic"])
+            if team.id != previous_pic:
+                pic_changed = True
             lead.pic = team.id      # or team.name, depending on what you want to store
 
         lead.save()
+
+        # Create a WorkAssignment entry only if pic was actually changed
+        if pic_changed:
+            # work = Works.objects.filter(project_id=lead.id, subcategory="Lead").first()
+            # if work:
+            WorkAssignment.objects.create(
+                work_id=lead.id,
+                assigned_date=timezone.now(),
+                status="Reassigned",
+                team_member_id=lead.pic,
+                comments=f"PIC changed on Lead #{lead.id} (previous: {previous_pic}, new: {lead.pic})",
+                created_by=request.user.team_member_id,
+            )
 
         # log_status_history(
         #     work_id=lead.id,
@@ -293,7 +311,7 @@ class LeadViewSet(BaseSalesViewSet):
             status=status.HTTP_200_OK
         )
 
-    @StatusLogger.log_status(change_type="lead", new_status="deleted", comments="Lead deleted")
+    # @StatusLogger.log_status(change_type="lead", new_status="deleted", comments="Lead deleted")
     @action(detail=True, methods=["put"])
     def delete_lead(self, request, pk=None):
 
@@ -339,26 +357,10 @@ class ProposalViewSet(BaseSalesViewSet):
             proposal.proposal_status='Declined'
             proposal.save(update_fields=['is_converted','proposal_status'])
             previous_status = proposal.proposal_status 
-            StatusLogger.log_status_history(
-            work_id=proposal.id,
-            previous_status=previous_status,
-            new_status=proposal.proposal_status,
-            change_type="proposal",
-            team_member_id=request.user.team_member_id,
-            comments="Proposal Declined"
-        )
             return Response({
                 "message": "Proposal Declined successfully",
             })
         previous_status = proposal.proposal_status 
-        StatusLogger.log_status_history(
-        work_id=proposal.id,
-        previous_status=previous_status,
-        new_status=proposal.proposal_status,
-        change_type="proposal",
-        team_member_id=request.user.team_member_id,
-        comments="Proposal converted to Quotation"
-    )
         quotation = Quotation.objects.create(
             proposal=proposal,
             name=proposal.name,
@@ -377,12 +379,12 @@ class ProposalViewSet(BaseSalesViewSet):
             "quotation_id": quotation.id
         })
 
-    @StatusLogger.log_status(change_type="proposal", new_status="updated", comments="Proposal updated")
+    @StatusLogger.log_status_change(change_type="proposal", status_field="proposal_status", comments="Proposal updated")
     @action(detail=True, methods=["put"])
     def update_proposal(self, request, pk=None):
         check = request.query_params.get("check")
-
         proposal = self.get_object()
+        previous_pic = proposal.pic_for_proposal   # For identify pic changes
 
         if proposal.is_converted:
             return Response(
@@ -435,8 +437,11 @@ class ProposalViewSet(BaseSalesViewSet):
                     field,
                     request.data[field]
                 )
+        pic_changed = False
         if "pic" in request.data:
             team = get_object_or_404(Team, pk=request.data["pic"])
+            if team.id != previous_pic:
+                pic_changed = True
             proposal.pic_for_proposal = team.id      # or team.name, depending on what you want to store
 
 
@@ -444,6 +449,19 @@ class ProposalViewSet(BaseSalesViewSet):
         #     proposal.attachment = request.FILES["attachment"]
 
         proposal.save()
+
+        # Create a WorkAssignment entry only if pic_for_proposal was actually changed
+        if pic_changed:
+            # work = Works.objects.filter(project_id=proposal.id, subcategory="Proposal").first()
+            # if work:
+            WorkAssignment.objects.create(
+                work_id=proposal.id,
+                assigned_date=timezone.now(),
+                status="Reassigned",
+                team_member_id=proposal.pic_for_proposal,
+                comments=f"PIC changed on Proposal #{proposal.id} (previous: {previous_pic}, new: {proposal.pic_for_proposal})",
+                created_by=request.user.team_member_id,
+            )
 
         return Response(
             {
@@ -526,7 +544,7 @@ class QuotationViewSet(BaseSalesViewSet):
         }
     )
 
-    @StatusLogger.log_status(change_type="quotation", new_status="revised", comments="Quotation revised to next version")
+    # @StatusLogger.log_status(change_type="quotation", new_status="revised", comments="Quotation revised to next version")
     @action(detail=True, methods=["post"])
     def revise(self, request, pk=None):
         """
@@ -584,7 +602,7 @@ class QuotationViewSet(BaseSalesViewSet):
         )
 
     
-    @StatusLogger.log_status(change_type="quotation", new_status="updated", comments="Quotation updated")
+    # @StatusLogger.log_status(change_type="quotation", new_status="updated", comments="Quotation updated")
     @action(detail=True, methods=["put"])
     def update_quotation(self, request, pk=None):
 
@@ -634,7 +652,7 @@ class QuotationViewSet(BaseSalesViewSet):
             status=status.HTTP_200_OK,
         )
     
-    @StatusLogger.log_status(change_type="quotation", new_status="updated", comments="Quotation updated")
+    # @StatusLogger.log_status(change_type="quotation", new_status="updated", comments="Quotation updated")
     @action(detail=True, methods=["put"])
     def update_phase(self, request, pk=None):
         quotation = self.get_object()
@@ -768,14 +786,6 @@ class QuotationViewSet(BaseSalesViewSet):
 
                 created.append(f"Purchase Order #{po.id}")
                 comments = "Purchase Order created" if phase == 4 else "Quotation phase updated"
-                if phase == 4:
-                    StatusLogger.log_status_history(
-                    work_id=quotation.id,
-                    previous_status="Quotation phase updated",
-                    new_status=f"phase_{phase}",
-                    change_type="quotation",
-                    team_member_id=quotation.team_member_id,
-                    comments=comments)
         return Response(
             {
                 "message": "Phase updated successfully",
@@ -785,7 +795,7 @@ class QuotationViewSet(BaseSalesViewSet):
             status=status.HTTP_200_OK,
         )
     
-    @StatusLogger.log_status(change_type="quotation", new_status="deleted", comments="Quotation deleted")
+    # @StatusLogger.log_status(change_type="quotation", new_status="deleted", comments="Quotation deleted")
     @action(detail=True, methods=["put"])
     def delete_quotation(self, request, pk=None):
 
@@ -804,7 +814,7 @@ class PurchaseOrderViewSet(BaseSalesViewSet):
     serializer_class = PurchaseOrderSerializer
     list_key = "purchase_orders"
 
-    @StatusLogger.log_status(change_type="purchase_order", new_status="updated", comments="Purchase Order updated")
+    # @StatusLogger.log_status(change_type="purchase_order", new_status="updated", comments="Purchase Order updated")
     @action(detail=True, methods=["put"])
     def update_purchase(self, request, pk=None):
 
