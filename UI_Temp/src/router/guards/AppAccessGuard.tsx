@@ -1,11 +1,11 @@
 import { Button, Result } from "antd";
-import { Outlet } from "react-router-dom";
-import { logoutFromKeycloak } from "../../config/keycloak";
+import { Outlet, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/auth/store";
 
 function AppAccessGuard() {
   const roles = useAuthStore((state) => state.roles);
   const clearAuth = useAuthStore((state) => state.clearAuth);
+  const navigate = useNavigate();
 
   if (roles.length === 0) {
     return (
@@ -18,7 +18,7 @@ function AppAccessGuard() {
             type="primary"
             onClick={async () => {
               clearAuth();
-              await logoutFromKeycloak("/login");
+              navigate("/login", { replace: true });
             }}
           >
             Logout

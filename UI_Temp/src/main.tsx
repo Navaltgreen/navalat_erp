@@ -3,11 +3,6 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App.tsx";
-import {
-  getKeycloakAuthSnapshot,
-  initKeycloak,
-  keycloak,
-} from "./config/keycloak";
 import { queryClient } from "./config/query/queryClient";
 import { useAuthStore } from "./store/auth/store";
 import AppThemeProvider from "./theme/AppThemeProvider";
@@ -33,28 +28,9 @@ function renderApp() {
   );
 }
 
-async function bootstrap() {
-  const { setAuthSnapshot, setAuthReady, clearAuth } = useAuthStore.getState();
-
-  try {
-    await initKeycloak();
-    setAuthSnapshot(getKeycloakAuthSnapshot());
-
-    keycloak.onAuthSuccess = () => {
-      useAuthStore.getState().setAuthSnapshot(getKeycloakAuthSnapshot());
-    };
-    keycloak.onAuthRefreshSuccess = () => {
-      useAuthStore.getState().setAuthSnapshot(getKeycloakAuthSnapshot());
-    };
-    keycloak.onAuthLogout = () => {
-      useAuthStore.getState().clearAuth();
-    };
-  } catch {
-    clearAuth();
-  } finally {
-    setAuthReady(true);
-    renderApp();
-  }
+function bootstrap() {
+  useAuthStore.getState().setAuthReady(true);
+  renderApp();
 }
 
-void bootstrap();
+bootstrap();

@@ -6,13 +6,8 @@ import {
   Typography,
   type MenuProps,
 } from "antd";
-import {
-  LogOut,
-  UserRound,
-  KeyRound,
-  Palette,
-} from "lucide-react";
-import { logoutFromKeycloak } from "../../config/keycloak";
+import { useNavigate } from "react-router-dom";
+import { LogOut, UserRound, KeyRound, Palette } from "lucide-react";
 import { useAuthStore } from "../../store/auth/store";
 import { useThemeStore } from "../../store/theme";
 
@@ -27,6 +22,7 @@ function ProfileAvatarDropdown() {
   );
   const mode = useThemeStore((state) => state.mode);
   const setMode = useThemeStore((state) => state.setMode);
+  const navigate = useNavigate();
 
   const displayName = user?.displayName || user?.username || "User";
   const roleText = roles.length > 0 ? roles.join(", ") : "No role";
@@ -41,7 +37,7 @@ function ProfileAvatarDropdown() {
   const handleLogout = async () => {
     setLastAttemptedPath(null);
     clearAuth();
-    await logoutFromKeycloak("/login");
+    navigate("/login", { replace: true });
   };
 
   const menuItemsUpdated: MenuProps["items"] = [
@@ -94,7 +90,6 @@ function ProfileAvatarDropdown() {
       onClick: handleLogout,
     },
   ];
-  
 
   return (
     <Dropdown
