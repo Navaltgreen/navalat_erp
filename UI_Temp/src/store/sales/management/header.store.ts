@@ -14,9 +14,9 @@ const useSalesManagementHeaderStore = create<SalesManagementHeaderStoreState>(
     salesPhases: [
       { value: "lead", label: "Lead" },
       { value: "proposal", label: "Proposal" },
-      { value: "quotation_phase_one", label: "Quotation Phase One" },
-      { value: "quotation_phase_two", label: "Quotation Phase Two" },
-      { value: "quotation_phase_three", label: "Quotation Phase Three" },
+      // { value: "quotation_phase_one", label: "Quotation Phase One" },
+      // { value: "quotation_phase_two", label: "Quotation Phase Two" },
+      // { value: "quotation_phase_three", label: "Quotation Phase Three" },
       { value: "purchase", label: "Purchase" },
     ],
     setSalesPhase: (phase: string) => {
