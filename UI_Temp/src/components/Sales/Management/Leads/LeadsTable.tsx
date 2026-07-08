@@ -20,9 +20,9 @@ import type { TableProps } from "antd";
 import { Edit, Trash } from "lucide-react";
 import { useLeadsQuery } from "../../../../query/sales/management/leads/leads_data.query";
 import { useDeleteLeadMutation } from "../../../../query/sales/management/leads/delete.query";
-import { useRequestProposalStatus } from "../../../../query/sales/management/leads/requestforpropsal.post.query";
 import { useLeadHistoryQuery } from "../../../../query/sales/management/leads/history.query";
 import { useSalesPrefiltersQuery } from "../../../../query/sales/management/prefilters.query";
+import LeadApproveModal from "./LeadApproveModal";
 import EditTableModel from "./EditTableModel";
 import { showNotification } from "../utils/showNotification";
 
@@ -142,9 +142,9 @@ function LeadsTable() {
   const { data, loading } = useLeadsQuery();
   const { mutate: deleteLeadMutate, isPending: isDeleting } =
     useDeleteLeadMutation();
-  const { mutate: requestProposalMutate } = useRequestProposalStatus();
   const { data: prefilters } = useSalesPrefiltersQuery("lead");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [expandedRowKeys, setExpandedRowKeys] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [divisionFilter, setDivisionFilter] = useState<string | null>(null);
@@ -178,6 +178,8 @@ function LeadsTable() {
     requestForProposal: boolean;
   }
   const [selectedLead, setSelectedLead] = useState<DataType | null>(null);
+  const [selectedApproveLead, setSelectedApproveLead] =
+    useState<DataType | null>(null);
 
   const records = useMemo(
     () => (data?.records ?? []) as DataType[],
@@ -384,7 +386,7 @@ function LeadsTable() {
 
         return (
           <Tag color={colorMap[status as keyof typeof colorMap] || "default"}>
-            {status}
+            {status == "Approved" ? "Move to Next Phase" : status}
           </Tag>
         );
       },
@@ -416,34 +418,20 @@ function LeadsTable() {
       //   width: 100,
       render: (_, record) => (
         <Flex gap={4}>
-          {record?.leadStatus == "Pending" ? (
+          {record?.leadStatus == "Pending"|| record?.leadStatus == "Approved" ? (
             <Flex gap={4}>
               <Button
                 color="green"
                 variant="solid"
                 size="medium"
-                onClick={() =>
-                  requestProposalMutate(
-                    {
-                      id: record.id,
-                      is_converted: true,
-                      lead_status: "Approved",
-                    },
-                    {
-                      onSuccess: () => {
-                        showNotification({
-                          type: "success",
-                          message: "Proposal Approved",
-                          description: `${record.name} proposal approved successfully.`,
-                        });
-                      },
-                    },
-                  )
-                }
+                onClick={() => {
+                  setSelectedApproveLead(record);
+                  setIsApproveModalOpen(true);
+                }}
               >
-                Approve
+                Create Proposal
               </Button>
-              <Button
+              {/* <Button
                 color="red"
                 variant="solid"
                 size="medium"
@@ -467,7 +455,7 @@ function LeadsTable() {
                 }
               >
                 Decline
-              </Button>
+              </Button> */}
             </Flex>
           ) : (
             <></>
@@ -523,6 +511,14 @@ function LeadsTable() {
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         editData={selectedLead}
+      />
+      <LeadApproveModal
+        open={isApproveModalOpen}
+        lead={selectedApproveLead}
+        onClose={() => {
+          setIsApproveModalOpen(false);
+          setSelectedApproveLead(null);
+        }}
       />
       <Drawer
         title={

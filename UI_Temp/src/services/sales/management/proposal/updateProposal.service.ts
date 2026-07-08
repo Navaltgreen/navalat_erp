@@ -23,15 +23,16 @@ export async function checkProposalNumber(
   id: number,
   proposalNumber: number,
 ): Promise<boolean> {
+  console.log(id,proposalNumber)
   try {
-    const response = await dataApi.put<ProposalNumberCheckResponse>(
-      `api/v1/sales/proposals/${id}/update_proposal/`,
-      {
-        proposal_number: proposalNumber,
-      },
+    const response = await dataApi.get<ProposalNumberCheckResponse>(
+      `api/v1/sales/proposals/check_proposal_number`,
+      // {
+      //   proposal_number: proposalNumber,
+      // },
       {
         params: {
-          check: "proposal_number",
+          proposal_number: proposalNumber,
         },
       },
     );
