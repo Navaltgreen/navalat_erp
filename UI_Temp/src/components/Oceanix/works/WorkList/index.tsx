@@ -1,6 +1,5 @@
 import {
   Button,
-  
   Col,
   message,
   Row,
@@ -12,7 +11,11 @@ import {
 } from "antd";
 import { useEffect, useState } from "react";
 import type { TableRowSelection } from "antd/es/table/interface";
-import type {AssignWorkPayload, WorkListData } from "../../../../types/oceanix/works/work_list";
+import type {
+  AssignWorkPayload,
+  Team,
+  WorkListData,
+} from "../../../../types/oceanix/works/work_list";
 import { useWorkAddStore } from "../../../../store/oceanix/works/work_add";
 import { useWorkListStore } from "../../../../store/oceanix/works/work_list";
 
@@ -24,7 +27,7 @@ const WorkList = () => {
     id: number;
     name: string;
   } | null>(null);
-  console.log('selectedMember: ', selectedMember);
+  console.log("selectedMember: ", selectedMember);
   const fetchAllWorkList = useWorkListStore((s) => s.fetchAllWorkList);
   const fetchTeamMembers = useWorkListStore((s) => s.fetchTeamMembers);
   const assignWorkToMember = useWorkListStore((s) => s.assignWorkToMember);
@@ -176,8 +179,8 @@ const WorkList = () => {
       title: "Team",
       dataIndex: "team_id",
       key: "team_id",
-      render: (team: { label: string; value: string }[]) =>
-        team?.map((t) => t.label).join(", "),
+      render: (team: Team[] | undefined) =>
+        team?.length ? team.map((item) => item.label).join(", ") : "-",
     },
     {
       title: "Images",
