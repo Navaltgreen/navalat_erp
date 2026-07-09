@@ -11,38 +11,14 @@ from .serializers import (
     QuotationSerializer,
     PurchaseOrderSerializer
 )
-import openpyxl
-import os
 from django.shortcuts import get_object_or_404
-
 from .utils import StatusLogger
-
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import status
-
-from rest_framework import viewsets
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework import status
-
+from rest_framework import viewsets, status
 from core.api_mixins import APIResponseMixin
 from work_assignments.models import WorkAssignment
-from .models import (
-    Lead,
-    Proposal,
-    Quotation,
-    PurchaseOrder
-)
-
-from .serializers import (
-    LeadSerializer,
-    ProposalSerializer,
-    QuotationSerializer,
-    PurchaseOrderSerializer
-)
 from teams.models import Team
-from rest_framework.views import APIView
 from clients.models import Client
 from rest_framework.viewsets import ViewSet
 from django.utils import timezone
@@ -51,14 +27,6 @@ from django.db import transaction
 class BaseSalesViewSet(APIResponseMixin, viewsets.ModelViewSet):
     list_key = "table_data"
 
-    # def list(self, request, *args, **kwargs):
-    #     queryset = self.get_queryset().order_by("-id")
-    #     serializer = self.get_serializer(queryset, many=True)
-
-    #     return self.get_response(
-    #         data={self.list_key: serializer.data},
-    #         message=f"{self.list_key} fetched successfully"
-    #     )
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset().order_by("-id")
         serializer = self.get_serializer(queryset, many=True)
@@ -412,44 +380,44 @@ class ProposalViewSet(BaseSalesViewSet):
             proposal.save(update_fields=['is_converted','proposal_status'])
             return Response({
                 "message": "Proposal Declined successfully",
-            })
+            })  
+        proposal.is_converted = request.data.get('is_converted')
+        proposal.proposal_status=request.data.get('proposal_status')
+        proposal.save()
 
-        quotation_data = request.data.get('quotation') or {}
         if request.data.get('is_converted'):
-                    po = PurchaseOrder.objects.filter(Proposal=proposal).first()
-                    proposal.proposal_status='Approved'
-                    proposal.save()
-                    if not po:
-                        po = PurchaseOrder.objects.create(
-                            Proposal=proposal,
-                            remarks=proposal.remarks,
-                            converted_date=timezone.now().date(),
-                            pic=proposal.pic_for_proposal,
-                        )
-        if quotation_data:
-            quotation = Quotation.objects.create(
-                proposal=proposal,
-                remarks=quotation_data.get('remarks'),
-                amount=quotation_data.get('amount'),
-                pic=quotation_data.get('pic'),
-                status='Pending',
-                converted_date=timezone.now().date()
+            po = PurchaseOrder.objects.filter(Proposal=proposal).first()
+            if not po:
+                last_quotation = proposal.quotations.order_by('-id').first()
+                po = PurchaseOrder.objects.create(
+                    Proposal=proposal,
+                    remarks=proposal.remarks,
+                    converted_date=timezone.now().date(),
+                    pic=proposal.pic_for_proposal,
+                    amount=last_quotation.amount if last_quotation else None
+                )
+            return Response(
+                {
+                    "message": "Proposal updated successfully",
+                    "purchase_id": po.id,
+                },
+                status=status.HTTP_200_OK
             )
 
+        else:
+            quotation = Quotation.objects.create(
+                proposal=proposal,
+                remarks=request.data.get('remarks'),
+                amount=request.data.get('amount'),
+                pic=proposal.pic_for_proposal,
+                status="Pending",
+                converted_date=timezone.now().date()
+            )
             return Response({
             "message": "Proposal converted successfully",
             "quotation_id": quotation.id
             })
-
-        proposal.save()
-        return Response(
-            {
-                "message": "Proposal updated successfully",
-                "proposal_id": proposal.id,
-            },
-            status=status.HTTP_200_OK
-        )
-
+        
     @action(detail=False, methods=["get"])
     def check_proposal_number(self, request):           # To check proposal_number already exists or not (To ensure new proposal_number is unique)
         proposal_number = request.query_params.get("proposal_number")
@@ -613,6 +581,9 @@ class PurchaseOrderViewSet(BaseSalesViewSet):
     queryset = PurchaseOrder.objects.all()
     serializer_class = PurchaseOrderSerializer
     list_key = "purchase_orders"
+
+    def get_queryset(self):
+        return PurchaseOrder.objects.select_related('Proposal', 'Proposal__lead')
 
     # @StatusLogger.log_status(change_type="purchase_order", new_status="updated", comments="Purchase Order updated")
     @action(detail=True, methods=["put"])
