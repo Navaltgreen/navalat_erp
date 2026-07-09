@@ -55,7 +55,6 @@ class Proposal(models.Model):
 
     attachment = models.CharField(
         max_length=1000,
-        unique=True,
         blank=True,
         null=True
     )
@@ -64,7 +63,7 @@ class Proposal(models.Model):
     converted_date = models.DateField(blank=True, null=True)
 
 
-class Quotation(BaseModel):
+class Quotation(models.Model):
     quotation_status = models.CharField(max_length=100, blank=True, null=True,default="Pending")
     proposal = models.ForeignKey(
         Proposal,
@@ -107,18 +106,17 @@ class Quotation(BaseModel):
     )
 
 
-class PurchaseOrder(BaseModel):
+class PurchaseOrder(models.Model):
     purchase_order_status = models.CharField(max_length=100, blank=True, null=True,default="Pending")
-    quotation = models.ForeignKey(
-        Quotation,
+    Proposal = models.ForeignKey(
+        Proposal,
         on_delete=models.CASCADE,
         related_name="purchase_orders"
     )
 
-    purchase_order_number = models.CharField(
-        max_length=100,
+    purchase_order_number = models.IntegerField(
         unique=True,
-         blank=True,
+        blank=True,
         null=True
     )
 
@@ -131,13 +129,23 @@ class PurchaseOrder(BaseModel):
 
     attachment = models.CharField(
         max_length=1000,
-        unique=True,
-         blank=True,
+        blank=True,
         null=True
     )
     remarks = models.TextField(blank=True, null=True)
     converted_date = models.DateField(blank=True, null=True)
     pic = models.PositiveIntegerField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        super().save(*args, **kwargs)
+
+        if is_new and self.purchase_order_number is None:
+            self.purchase_order_number = self.id
+            super().save(update_fields=['purchase_order_number'])
+
+    def __str__(self):
+        return f"PO #{self.purchase_order_number or self.id} - {self.Proposal}"
 
 
     
