@@ -27,6 +27,11 @@ class Lead(BaseModel):
     pic = models.PositiveIntegerField(blank=True, null=True)
     is_converted = models.BooleanField(default=False)
     remarks = models.TextField(blank=True, null=True)
+    priority = models.CharField(
+        default="Low",
+        blank=True,
+        null=True,
+    )
 
 
     def __str__(self):
@@ -60,6 +65,11 @@ class Proposal(models.Model):
     )
 
     remarks = models.TextField(blank=True, null=True)
+    priority = models.CharField(
+        default="Low",
+        blank=True,
+        null=True,
+    )
     converted_date = models.DateField(blank=True, null=True)
 
 

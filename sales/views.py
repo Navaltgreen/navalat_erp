@@ -145,7 +145,7 @@ class LeadViewSet(BaseSalesViewSet):
                 "message": "Lead declined successfully"
             }, status=status.HTTP_200_OK)
 
-        proposal_fields = ['proposal_number', 'pic_for_proposal', 'attachment']
+        proposal_fields = ['proposal_number', 'pic_for_proposal', 'attachment', 'priority']
         proposal_payload = {
             field: request.data[field]
             for field in proposal_fields
@@ -228,6 +228,7 @@ class LeadViewSet(BaseSalesViewSet):
             "lead_status",
             "lead_source",
             "last_activity",
+            "priority"
         ]
 
         for field in allowed_fields:
@@ -428,7 +429,7 @@ class ProposalViewSet(BaseSalesViewSet):
                 proposal=proposal,
                 remarks=request.data.get('remarks'),
                 amount=request.data.get('amount'),
-                pic=proposal.pic_for_proposal,
+                pic=request.data.get('pic'),
                 status="Pending",
                 converted_date=timezone.now().date()
             )
@@ -477,7 +478,8 @@ class ProposalViewSet(BaseSalesViewSet):
         allowed_fields = [
             "remarks",
             "proposal_number",
-            "attachment"
+            "attachment",
+            "priority"
         ]
         changed_fields = []
 
@@ -574,57 +576,21 @@ class QuotationViewSet(BaseSalesViewSet):
     @action(detail=True, methods=["put"])
     def update_quotation(self, request, pk=None):
         quotation = self.get_object()
+        is_convert = request.data.get("is_convert")
+        status_value = request.data.get("status")
 
-        if quotation.is_converted:
-            return Response(
-                {"message": "Converted quotation cannot be modified"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        allowed_fields = [
-            "quotation_number",
-            "status",
-            "amount",
-            "remarks",
-            "attachment",
-            "is_converted"
-        ]
-
-        updated_fields = []
-
-        for field in allowed_fields:
-            if field in request.data:
-                setattr(quotation, field, request.data[field])
-                updated_fields.append(field)
-
-        if "pic" in request.data:
-            team = get_object_or_404(Team, pk=request.data["pic"])
-            quotation.pic = team.id
-            updated_fields.append("pic")
-
-        if not updated_fields:
-            return Response(
-                {"message": "No valid fields provided to update"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        quotation.save(update_fields=updated_fields)
-
+        quotation.is_converted = is_convert
+        quotation.status = status_value
+        quotation.quotation_status = status_value
+        quotation.save(update_fields=["is_converted", "status", "quotation_status"])
         return Response(
             {
                 "message": "Quotation updated successfully",
                 "quotation_id": quotation.id,
-                "quotation_number": quotation.quotation_number,
-                "version": quotation.version,
-                "status": quotation.status,
-                "amount": quotation.amount,
-                "remarks": quotation.remarks,
-                "attachment": quotation.attachment,
-                "pic": quotation.pic,
-                "is_converted": quotation.is_converted
             },
             status=status.HTTP_200_OK,
         )
+
 
 class PurchaseOrderViewSet(BaseSalesViewSet):
     queryset = PurchaseOrder.objects.all()
