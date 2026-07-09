@@ -33,13 +33,3 @@ def create_work_entry_for_proposal(sender, instance, created, **kwargs):
             created_by=None,
         )
 
-        # # Only create a WorkAssignment if a PIC was actually set on the proposal
-        # if instance.pic_for_proposal:
-        #     WorkAssignment.objects.create(
-        #         work_id=work.id,
-        #         assigned_date=timezone.now(),
-        #         status="Assigned",
-        #         team_member_id=instance.pic_for_proposal,   #here is the problem
-        #         comments=f"Auto-assigned on proposal creation (Proposal #{instance.id})",
-        #         created_by=None,
-        #     )
