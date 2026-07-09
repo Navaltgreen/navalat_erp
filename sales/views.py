@@ -342,6 +342,7 @@ class ProposalViewSet(BaseSalesViewSet):
                 "remarks": proposal.remarks,
                 "converted_date": proposal.converted_date,
                 "lead": proposal.lead_id,
+                "priority": proposal.priority
             })
 
         return Response({
