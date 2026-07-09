@@ -28,8 +28,22 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
   editData,
 }) => {
   const { mutate: updateLeadMutate, isPending } = useUpdateLeadMutation();
- const members = useSalesTeamMembersStore((state) => state.data);
+  const members = useSalesTeamMembersStore((state) => state.data);
   const [form] = Form.useForm();
+
+  const normalizePicToMemberId = (picValue: string | undefined) => {
+    if (!picValue) {
+      return undefined;
+    }
+
+    const matchedMember = members.find(
+      (member) =>
+        String(member.id) === String(picValue) || member.name === picValue,
+    );
+
+    return matchedMember ? String(matchedMember.id) : picValue;
+  };
+
   useEffect(() => {
     if (editData) {
       console.log("editData", editData);
@@ -40,13 +54,13 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
         client: editData.client,
         lead_status: editData.leadStatus,
         lead_source: editData.leadSource,
-        pic: editData.pic,
+        pic: normalizePicToMemberId(editData.pic),
         email: editData.email,
         phone: editData.phone,
         remark: editData.remark, // important mapping
       });
     }
-  }, [editData, form]);
+  }, [editData, form, members]);
   return (
     <>
       <Modal
@@ -64,10 +78,15 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
           onFinish={(values) => {
             if (!editData?.id) return;
 
+            const normalizedPic = normalizePicToMemberId(values.pic);
+
             updateLeadMutate(
               {
                 id: editData.id,
-                payload: values,
+                payload: {
+                  ...values,
+                  pic: normalizedPic,
+                },
               },
               {
                 onSuccess: () => {
