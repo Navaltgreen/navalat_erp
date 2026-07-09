@@ -151,5 +151,16 @@ class PurchaseOrder(models.Model):
     def __str__(self):
         return f"PO #{self.purchase_order_number or self.id} - {self.Proposal}"
 
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        super().save(*args, **kwargs)
+
+        if is_new and self.purchase_order_number is None:
+            self.purchase_order_number = self.id
+            super().save(update_fields=['purchase_order_number'])
+
+    def __str__(self):
+        return f"PO #{self.purchase_order_number or self.id} - {self.Proposal}"
+
 
     

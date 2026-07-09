@@ -386,7 +386,6 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
 
     @action(detail=False, methods=["get"], url_path="sales-works")
     def sales_works(self, request):
-
         works = Works.objects.filter(category="Sales").order_by("-id")
 
         team_map = dict(
@@ -426,19 +425,26 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
 
         module = request.query_params.get("module")
 
-        if module == "lead":
-            work_ids = Lead.objects.values_list("id", flat=True)
+        module_map = {
+            "lead": (
+                Lead,
+                "name",
+            ),
+            "proposal": (
+                Proposal,
+                "proposal_number",
+            ),
+            "quotation": (
+                Quotation,
+                "quotation_number",
+            ),
+            "purchase": (
+                PurchaseOrder,
+                "purchase_order_number",
+            ),
+        }
 
-        elif module == "proposal":
-            work_ids = Proposal.objects.values_list("id", flat=True)
-
-        elif module == "quotation":
-            work_ids = Quotation.objects.values_list("id", flat=True)
-
-        elif module == "purchase":
-            work_ids = PurchaseOrder.objects.values_list("id", flat=True)
-
-        else:
+        if module not in module_map:
             return Response(
                 {
                     "message": "Invalid module. Use lead, proposal, quotation or purchase."
@@ -446,56 +452,66 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        model, display_field = module_map[module]
+
+        # IDs of Lead / Proposal / Quotation / Purchase Order
+        project_ids = model.objects.values_list("id", flat=True)
+
+        # Map: Works.id -> project_id
+        works = Works.objects.filter(
+            category="Sales",
+            project_id__in=project_ids,
+        )
+
+        work_to_project = {
+            work.id: work.project_id
+            for work in works
+        }
+
+        # Map: project_id -> display name
+        name_map = dict(
+            model.objects.values_list(
+                "id",
+                display_field,
+            )
+        )
+
+        # Team map
+        team_map = dict(
+            Team.objects.values_list(
+                "team_id",
+                "member",
+            )
+        )
+
+        # Fetch logs using Works.id
         logs = (
-            StatusHistory.objects
-            .filter(work_id__in=work_ids)
+            StatusHistory.objects.filter(
+                work_id__in=work_to_project.keys()
+            )
             .order_by("-changed_at")
         )
 
-        team_map = dict(
-            Team.objects.values_list("id", "member")
-        )
-        
-        name_map = {}
+        data = []
 
-        if module == "lead":
-            name_map = dict(
-                Lead.objects.filter(id__in=work_ids)
-                .values_list("id", "name")
+        for log in logs:
+
+            project_id = work_to_project.get(log.work_id)
+
+            data.append(
+                {
+                    "id": log.id,
+                    "work_id": log.work_id,
+                    "project_id": project_id,
+                    "work_name": name_map.get(project_id),
+                    "previous_status": log.previous_status,
+                    "status": log.status,
+                    "change_type": log.change_type,
+                    "comments": log.comments,
+                    "team_member": team_map.get(log.team_member_id),
+                    "changed_at": log.changed_at,
+                }
             )
-
-        elif module == "proposal":
-            name_map = dict(
-                Proposal.objects.filter(id__in=work_ids)
-                .values_list("id", "proposal_number")
-            )
-
-        elif module == "quotation":
-            name_map = dict(
-                Quotation.objects.filter(id__in=work_ids)
-                .values_list("id", "quotation_number")
-            )
-
-        elif module == "purchase":
-            name_map = dict(
-                PurchaseOrder.objects.filter(id__in=work_ids)
-                .values_list("id", "purchase_order_number")
-            )
-
-        data = [
-            {
-                "id": log.id,
-                "work_id": log.work_id,
-                "work_name": name_map.get(log.work_id),
-                "previous_status": log.previous_status,
-                "status": log.status,
-                "change_type": log.change_type,
-                "comments": log.comments,
-                "team_member": team_map.get(log.team_member_id),
-                "changed_at": log.changed_at,
-            }
-            for log in logs
-        ]
 
         return self.get_response(
             data={"logs": data},

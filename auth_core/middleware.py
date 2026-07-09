@@ -140,21 +140,23 @@ def get_jwks_client(realm_url):
 #         return self.get_response(request)
 
 
-class KeycloakMiddleware:
 
+
+class KeycloakMiddleware:
+ 
     def __init__(self, get_response):
         self.get_response = get_response
         self.exempt_paths = settings.KEYCLOAK_EXEMPT_PATHS
-
+ 
     def __call__(self, request):
         path = request.path_info.lstrip('/')
         if any(path.startswith(exempt) for exempt in self.exempt_paths):
             return self.get_response(request)
-
+ 
         # ---- DEV-ONLY BYPASS: hardcoded user for local testing ----
         if getattr(settings, 'USE_FAKE_AUTH', False):
             from auth_core.models import ERPUser
-
+ 
             fake_sub = 'test-user-sub-001'
             erp_user, _ = ERPUser.objects.get_or_create(
                 sub=fake_sub,
@@ -180,9 +182,55 @@ class KeycloakMiddleware:
             }
             return self.get_response(request)
         # ---- END DEV BYPASS ----
-
+ 
         auth_header = request.META.get('HTTP_AUTHORIZATION', '')
         if not auth_header.startswith('Bearer '):
             return JsonResponse({'error': 'Authorization token missing'}, status=401)
-
-        # ...rest of your existing real JWT logic stays exactly the same...
+ 
+#         # ...rest of your existing real JWT logic stays exactly the same...
+# class KeycloakMiddleware:
+ 
+#     def __init__(self, get_response):
+#         self.get_response = get_response
+#         self.exempt_paths = settings.KEYCLOAK_EXEMPT_PATHS
+ 
+#     def __call__(self, request):
+#         path = request.path_info.lstrip('/')
+#         if any(path.startswith(exempt) for exempt in self.exempt_paths):
+#             return self.get_response(request)
+ 
+#         # ---- DEV-ONLY BYPASS: hardcoded user for local testing ----
+#         if getattr(settings, 'USE_FAKE_AUTH', False):
+#             from auth_core.models import ERPUser
+ 
+#             fake_sub = 'test-user-sub-001'
+#             erp_user, _ = ERPUser.objects.get_or_create(
+#                 sub=fake_sub,
+#                 defaults={
+#                     'username': 'testuser',
+#                     'email': 'testuser@example.com',
+#                     'first_name': 'Test',
+#                     'last_name': 'User',
+#                     'realm': 'test-realm',
+#                     'roles': ['admin'],
+#                 }
+#             )
+#             request.user = erp_user
+#             request.META['KEYCLOAK_USER'] = {
+#                 'username': erp_user.username,
+#                 'email': erp_user.email,
+#                 'first_name': erp_user.first_name,
+#                 'last_name': erp_user.last_name,
+#                 'realm': erp_user.realm,
+#                 'roles': erp_user.roles,
+#                 'sub': erp_user.sub,
+#                 'is_first_login': False,
+#             }
+#             return self.get_response(request)
+#         # ---- END DEV BYPASS ----
+ 
+#         auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+#         if not auth_header.startswith('Bearer '):
+#             return JsonResponse({'error': 'Authorization token missing'}, status=401)
+ 
+#         # ...rest of your existing real JWT logic stays exactly the same...

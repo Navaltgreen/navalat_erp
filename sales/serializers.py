@@ -46,12 +46,12 @@ class QuotationSerializer(BaseSerializer):
     #     return team.member if team else None
 
 class PurchaseOrderSerializer(BaseSerializer):
-    lead_name = serializers.SerializerMethodField()
-    lead_title = serializers.SerializerMethodField()
-    lead_client = serializers.SerializerMethodField()
-    lead_email = serializers.SerializerMethodField()
-    lead_phone = serializers.SerializerMethodField()
-    lead_division = serializers.SerializerMethodField()
+    name = serializers.SerializerMethodField()
+    title = serializers.SerializerMethodField()
+    client = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
+    phone = serializers.SerializerMethodField()
+    division = serializers.SerializerMethodField()
 
 
     class Meta:
@@ -67,38 +67,38 @@ class PurchaseOrderSerializer(BaseSerializer):
             'remarks',
             'converted_date',
             'pic',
-            'lead_name',
-            'lead_title',
-            'lead_client',
-            'lead_email',
-            'lead_phone',
-            'lead_division',
+            'name',
+            'title',
+            'client',
+            'email',
+            'phone',
+            'division',
         ]
 
     def get_lead(self, obj):
         return getattr(obj.Proposal, 'lead', None)
 
-    def get_lead_name(self, obj):
+    def get_name(self, obj):
         lead = self.get_lead(obj)
         return lead.name if lead else None
 
-    def get_lead_title(self, obj):
+    def get_title(self, obj):
         lead = self.get_lead(obj)
         return lead.title if lead else None
 
-    def get_lead_client(self, obj):
+    def get_client(self, obj):
         lead = self.get_lead(obj)
         return lead.client if lead else None
 
-    def get_lead_email(self, obj):
+    def get_email(self, obj):
         lead = self.get_lead(obj)
         return lead.email if lead else None
 
-    def get_lead_phone(self, obj):
+    def get_phone(self, obj):
         lead = self.get_lead(obj)
         return lead.phone if lead else None
 
-    def get_lead_division(self, obj):
+    def get_division(self, obj):
         lead = self.get_lead(obj)
         return lead.division if lead else None
 

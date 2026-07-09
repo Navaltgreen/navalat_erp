@@ -386,7 +386,7 @@ function LeadsTable() {
 
         return (
           <Tag color={colorMap[status as keyof typeof colorMap] || "default"}>
-            {status == "Approved" ? "Move to Next Phase" : status}
+            {status == "Approved" ? "Moved to Next Phase" : status}
           </Tag>
         );
       },
