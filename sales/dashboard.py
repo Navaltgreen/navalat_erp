@@ -99,3 +99,89 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
             data={"chart_data": data},
             message=f"{module.capitalize()} performance fetched successfully",
         )
+
+
+
+    @action(detail=False, methods=["get"], url_path="history")
+    def history(self, request):
+
+        lead_id = request.query_params.get("lead_id")
+
+        if not lead_id:
+            return Response(
+                {"message": "lead_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            lead = Lead.objects.get(pk=lead_id)
+        except Lead.DoesNotExist:
+            return Response(
+                {"message": "Lead not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        history = []
+
+        # Lead
+        history.append({
+            "phase": "lead",
+            "id": lead.id,
+            "name": lead.name,
+            "status": lead.lead_status,
+            "created_at": lead.created_at,
+            "converted_date": lead.converted_date,
+        })
+
+        proposals = Proposal.objects.filter(lead=lead).order_by("id")
+
+        for proposal in proposals:
+
+            history.append({
+                "phase": "proposal",
+                "id": proposal.id,
+                "proposal_number": proposal.proposal_number,
+                "status": proposal.proposal_status,
+                # "created_at": proposal.created_at,
+                "converted_date": proposal.converted_date,
+            })
+
+            quotations = Quotation.objects.filter(
+                proposal=proposal
+            ).order_by("version")
+
+            for quotation in quotations:
+
+                history.append({
+                    "phase": "quotation",
+                    "id": quotation.id,
+                    "version": quotation.version,
+                    "quotation_number": quotation.quotation_number,
+                    "status": quotation.quotation_status,
+                    "amount": quotation.amount,
+                    # "created_at": quotation.created_at,
+                    "converted_date": quotation.converted_date,
+                })
+
+                purchase_orders = PurchaseOrder.objects.filter(
+                    Proposal=proposal
+                )
+
+                for po in purchase_orders:
+
+                    history.append({
+                        "phase": "purchase",
+                        "id": po.id,
+                        "purchase_order_number": po.purchase_order_number,
+                        "status": po.purchase_order_status,
+                        "amount": po.amount,
+                        # "created_at": po.created_at,
+                        "converted_date": po.converted_date,
+                    })
+
+        return self.get_response(
+            data={
+                "history": history
+            },
+            message="History fetched successfully",
+        )
