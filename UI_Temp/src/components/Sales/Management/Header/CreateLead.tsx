@@ -150,6 +150,25 @@ const CreateLead: React.FC = () => {
             </Col>
 
             <Col span={12}>
+              <Form.Item
+                label="Priority"
+                name="priority"
+                rules={[{ required: true, message: "Please select priority" }]}
+              >
+                <Select
+                  placeholder="Select priority"
+                  options={[
+                    { label: "Low", value: "Low" },
+                    { label: "Medium", value: "Medium" },
+                    { label: "High", value: "High" },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
               <Form.Item label="PIC" name="pic" rules={[{ required: true }]}>
                 <Select
                   placeholder="Select PIC"
