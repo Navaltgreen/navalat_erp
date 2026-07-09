@@ -70,6 +70,7 @@ function ProposalQuotationsTable({ proposalId }: ProposalQuotationsTableProps) {
     },
     {
       title: "Action",
+      // title: "Action",
       dataIndex: "action",
       key: "action",
       render: (_, record) => (
