@@ -48,6 +48,25 @@ class StatusLogger:
             return None
         except Exception:
             return None
+        
+    @staticmethod 
+    def log_status_history(
+        work_id,
+        previous_status,
+        new_status,
+        change_type,
+        team_member_id=None,
+        comments=None,
+    ):
+        StatusHistory.objects.create(
+            work_id=work_id,
+            previous_status=previous_status or "",
+            status=new_status or "",
+            change_type=change_type,
+            team_member_id=team_member_id,
+            comments=comments,
+            changed_at=timezone.now(),
+        )
 
     # @staticmethod
     # def log_status_history(
@@ -97,17 +116,15 @@ class StatusLogger:
                 if response.status_code < 300:
                     obj.refresh_from_db()   # pull the saved value after func ran
                     new_status = getattr(obj, status_field, None)
-
-                    if new_status != previous_status:
-                        team_member_id = StatusLogger.get_team_member_id(request) or None
-                        StatusLogger.log_status_history(
-                            work_id=work_id,
-                            previous_status=previous_status,
-                            new_status=new_status,
-                            change_type=change_type,
-                            team_member_id=team_member_id,
-                            comments=comments,
-                        )
+                    team_member_id = StatusLogger.get_team_member_id(request) or None
+                    StatusLogger.log_status_history(
+                        work_id=work_id,
+                        previous_status=previous_status,
+                        new_status=new_status,
+                        change_type=change_type,
+                        team_member_id=team_member_id,
+                        comments=comments,
+                    )
 
                 return response
             return wrapper
@@ -126,23 +143,7 @@ class StatusLogger:
 #         return None
 #     except Exception:
 #         return None
-# def log_status_history(
-#     work_id,
-#     previous_status,
-#     new_status,
-#     change_type,
-#     team_member_id=None,
-#     comments=None,
-# ):
-#     StatusHistory.objects.create(
-#         work_id=work_id,
-#         previous_status=previous_status or "",
-#         status=new_status or "",
-#         change_type=change_type,
-#         team_member_id=team_member_id,
-#         comments=comments,
-#         changed_at=timezone.now(),
-#     )
+
 
 
 # def log_status(change_type, new_status, comments=None):
