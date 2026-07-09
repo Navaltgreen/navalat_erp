@@ -2,7 +2,8 @@ import type { ComponentType } from "react";
 import {
   Bug,
   SquareArrowUpLeft,
-  ListTodo,BugPlay,
+  ListTodo,
+  BugPlay,
   // Activity,
   // BarChart3,
   // ClipboardList,
@@ -18,6 +19,8 @@ import { DiamondPercent, SquareKanban } from "lucide-react";
 import DashboardPage from "../pages/DashboardPage";
 import SalesDashboard from "../components/Sales/Dashboard/DashboardOptimized";
 import SalesManagement from "../components/Sales/Management/ManagementOptimized";
+import SalesTaskLogs from "../components/Sales/SalesTaskLogs";
+import SalesTasks from "../components/Sales/Tasks";
 import SalesPage from "../pages/SalesPage";
 import OceanixPage from "../pages/OceanixPage";
 import Onboarding from "../components/Oceanix/Onboarding";
@@ -63,6 +66,20 @@ export const appRoutes: RouteConfig[] = [
         icon: SquareKanban,
         roles: ["root", "admin", "superadmin"],
         component: SalesManagement,
+      },
+      {
+        path: "tasks",
+        label: "Tasks",
+        icon: ListTodo,
+        roles: ["root", "admin", "superadmin"],
+        component: SalesTasks,
+      },
+      {
+        path: "task-logs",
+        label: "Task Logs",
+        icon: BugPlay,
+        roles: ["root", "admin", "superadmin"],
+        component: SalesTaskLogs,
       },
     ],
   },
