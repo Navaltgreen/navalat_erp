@@ -70,7 +70,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'auth_core.middleware.KeycloakMiddleware'
+    'auth_core.middleware.KeycloakMiddleware'
 ]
 
 KEYCLOAK_EXEMPT_PATHS = [
@@ -79,7 +79,19 @@ KEYCLOAK_EXEMPT_PATHS = [
     'api/docs/',
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'auth_core.authentication.KeycloakDRFAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+}
+
 ROOT_URLCONF = 'erp_project.urls'
+
+# for testing purpose - Remove later 
+USE_FAKE_AUTH = True
 
 TEMPLATES = [
     {
