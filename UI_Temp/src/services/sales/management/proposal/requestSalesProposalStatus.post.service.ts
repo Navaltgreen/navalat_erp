@@ -6,6 +6,7 @@ type requestProposalBody = {
   proposal_status?: "Approved" | "Declined" | "Pending";
   amount?: number;
   remarks?: string;
+  pic?: string;
 };
 export async function requestSalesProposalMutate(
   id: number,

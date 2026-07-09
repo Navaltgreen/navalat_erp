@@ -1,15 +1,19 @@
-import { Empty, Table, Tag } from "antd";
+import { Button, Empty, Space, Table, Tag } from "antd";
 import type { TableProps } from "antd";
 import { useMemo } from "react";
 
+import { useQuotationFollowUpMutation } from "../../../../query/sales/management/proposal/quotation-followup.query";
 import { useProposalQuotationsQuery } from "../../../../query/sales/management/proposal/quotations.query";
+import { showNotification } from "../utils/showNotification";
 
 type ProposalQuotationsTableProps = {
   proposalId: number;
 };
 
 function ProposalQuotationsTable({ proposalId }: ProposalQuotationsTableProps) {
-  const { data, loading } = useProposalQuotationsQuery(proposalId);
+  const { data, loading, refetch } = useProposalQuotationsQuery(proposalId);
+  const { mutate: followUpQuotationMutate, isPending: isFollowUpPending } =
+    useQuotationFollowUpMutation();
 
   const records = useMemo(() => data?.records ?? [], [data]);
 
@@ -63,6 +67,36 @@ function ProposalQuotationsTable({ proposalId }: ProposalQuotationsTableProps) {
       dataIndex: "remarks",
       key: "remarks",
       render: (value) => value || "-",
+    },
+    {
+      title: "Action",
+      dataIndex: "action",
+      key: "action",
+      render: (_, record) => (
+        <Space>
+          {record.status === "Pending" && (
+            <Button
+              type="primary"
+              size="small"
+              loading={isFollowUpPending}
+              onClick={() => {
+                followUpQuotationMutate(record.id, {
+                  onSuccess: async () => {
+                    await refetch();
+                    showNotification({
+                      type: "success",
+                      message: "Follow-up Sent",
+                      description: `Quotation #${record.quotationNumber ?? record.id} follow-up updated.`,
+                    });
+                  },
+                });
+              }}
+            >
+              Follow Up
+            </Button>
+          )}
+        </Space>
+      ),
     },
   ];
 

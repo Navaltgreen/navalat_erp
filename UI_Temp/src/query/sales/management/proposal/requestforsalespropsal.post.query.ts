@@ -8,6 +8,7 @@ type RequestProposalPayload = {
   proposal_status?: "Pending" | "Approved" | "Declined";
   amount?: number;
   remarks?: string;
+  pic?: string;
 };
 export function useRequestSalesProposalStatus() {
   const queryClient = useQueryClient();
