@@ -193,19 +193,19 @@ class LeadViewSet(BaseSalesViewSet):
                 proposal = Proposal.objects.create(
                     lead=lead,
                     proposal_number=proposal_data.get('proposal_number'),
-                    pic_for_proposal=proposal_data.get('pic_for_proposal'),
+                    pic=proposal_data.get('pic'),
                     attachment=proposal_data.get('attachment'),
                 )
                 created_proposals.append(proposal)
                 
                 # Only create a WorkAssignment entry if a PIC was actually set on the proposal
-                if proposal.pic_for_proposal:
+                if proposal.pic:
                     # work = Works.objects.get(project_id=proposal.id, subcategory="Proposal")
                     WorkAssignment.objects.create(
                         work_id=proposal.id,
                         assigned_date=timezone.now(),
                         status="Assigned",
-                        team_member_id=proposal.pic_for_proposal,
+                        team_member_id=proposal.pic,
                         comments=f"Assigned on proposal creation (Proposal #{proposal.id})",
                         # created_by=request.user.team_member_id,
                     )
@@ -300,7 +300,7 @@ class LeadViewSet(BaseSalesViewSet):
             previous_status=previous_status,
             new_status=lead.lead_status,
             change_type="lead",
-            team_member_id=lead.team_member_id,
+            team_member_id= request.user.team_member_id,
             comments=comments
         )
         return Response(
@@ -384,7 +384,7 @@ class ProposalViewSet(BaseSalesViewSet):
     def update_proposal(self, request, pk=None):
         check = request.query_params.get("check")
         proposal = self.get_object()
-        previous_pic = proposal.pic_for_proposal   # For identify pic changes
+        previous_pic = proposal.pic   # For identify pic changes
 
         if proposal.is_converted:
             return Response(
@@ -442,8 +442,8 @@ class ProposalViewSet(BaseSalesViewSet):
             team = get_object_or_404(Team, pk=request.data["pic"])
             if team.id != previous_pic:
                 pic_changed = True
-            proposal.pic_for_proposal = team.id      # or team.name, depending on what you want to store
-
+            # proposal.pic_for_proposal = team.id      # or team.name, depending on what you want to store
+            proposal.pic = team.id
 
         # if "attachment" in request.FILES:
         #     proposal.attachment = request.FILES["attachment"]
@@ -544,7 +544,7 @@ class QuotationViewSet(BaseSalesViewSet):
         }
     )
 
-    # @StatusLogger.log_status(change_type="quotation", new_status="revised", comments="Quotation revised to next version")
+    @StatusLogger.log_status(change_type="quotation", new_status="revised", comments="Quotation revised to next version")
     @action(detail=True, methods=["post"])
     def revise(self, request, pk=None):
         """
@@ -602,7 +602,7 @@ class QuotationViewSet(BaseSalesViewSet):
         )
 
     
-    # @StatusLogger.log_status(change_type="quotation", new_status="updated", comments="Quotation updated")
+    @StatusLogger.log_status(change_type="quotation", new_status="updated", comments="Quotation updated")
     @action(detail=True, methods=["put"])
     def update_quotation(self, request, pk=None):
 
@@ -652,7 +652,7 @@ class QuotationViewSet(BaseSalesViewSet):
             status=status.HTTP_200_OK,
         )
     
-    # @StatusLogger.log_status(change_type="quotation", new_status="updated", comments="Quotation updated")
+    @StatusLogger.log_status(change_type="quotation", new_status="updated", comments="Quotation phase updated")
     @action(detail=True, methods=["put"])
     def update_phase(self, request, pk=None):
         quotation = self.get_object()
@@ -795,7 +795,7 @@ class QuotationViewSet(BaseSalesViewSet):
             status=status.HTTP_200_OK,
         )
     
-    # @StatusLogger.log_status(change_type="quotation", new_status="deleted", comments="Quotation deleted")
+    @StatusLogger.log_status(change_type="quotation", new_status="deleted", comments="Quotation deleted")
     @action(detail=True, methods=["put"])
     def delete_quotation(self, request, pk=None):
 
@@ -814,7 +814,7 @@ class PurchaseOrderViewSet(BaseSalesViewSet):
     serializer_class = PurchaseOrderSerializer
     list_key = "purchase_orders"
 
-    # @StatusLogger.log_status(change_type="purchase_order", new_status="updated", comments="Purchase Order updated")
+    @StatusLogger.log_status(change_type="purchase_order", new_status="updated", comments="Purchase Order updated")
     @action(detail=True, methods=["put"])
     def update_purchase(self, request, pk=None):
 

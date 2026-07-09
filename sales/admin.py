@@ -39,7 +39,7 @@ class ProposalAdmin(admin.ModelAdmin):
         "get_lead_name",
         "lead",
         "get_lead_client",
-        "pic_for_proposal",
+        "pic",
         "converted_date",
     )
     search_fields = (

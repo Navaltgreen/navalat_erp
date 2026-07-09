@@ -50,7 +50,7 @@ class Proposal(models.Model):
         null=True
     )
 
-    pic_for_proposal = models.PositiveIntegerField(blank=True, null=True)
+    pic = models.PositiveIntegerField(blank=True, null=True)
 
 
     attachment = models.CharField(
