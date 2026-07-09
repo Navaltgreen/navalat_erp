@@ -27,6 +27,14 @@ from django.db import transaction
 class BaseSalesViewSet(APIResponseMixin, viewsets.ModelViewSet):
     list_key = "table_data"
 
+    # def list(self, request, *args, **kwargs):
+    #     queryset = self.get_queryset().order_by("-id")
+    #     serializer = self.get_serializer(queryset, many=True)
+
+    #     return self.get_response(
+    #         data={self.list_key: serializer.data},
+    #         message=f"{self.list_key} fetched successfully"
+    #     )
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset().order_by("-id")
         serializer = self.get_serializer(queryset, many=True)
