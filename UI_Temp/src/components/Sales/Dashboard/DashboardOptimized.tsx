@@ -1,9 +1,10 @@
 import { Card, Col, Empty, Row, Statistic, Typography } from "antd";
 import type { EChartsOption } from "echarts";
 import Chart from "../../../design-system/chart";
-import { useThemeStore } from "../../../store/theme";
 import { useSalesDashboardPerformanceQuery } from "../../../query/sales/dashboard-performance.query";
+import { useThemeStore } from "../../../store/theme";
 import type { DashboardModule } from "../../../services/sales/dashboard-performance.service";
+import SalesSummaryWidget from "./SalesSummaryWidget";
 
 const { Title, Text } = Typography;
 
@@ -138,75 +139,74 @@ function DashboardOptimized() {
   };
 
   return (
-   
+    <div>
+      <SalesSummaryWidget />
+
       <Row gutter={[16, 16]}>
         <Col span={24}>
-          {/* <Card > */}
-            <div style={{ marginBottom: 16 }}>
-              <Title level={4} style={{ margin: 0 }}>
-                Sales Phase Employee Charts
-              </Title>
-              <Text type="secondary">
-                Employee-wise counts for lead, proposal, quotation, and
-                purchase.
-              </Text>
-            </div>
-            <Row gutter={[16, 16]}>
-              {salesPhaseCharts.map((phase) => {
-                const employees = chartDataByModule(phase.key);
-                const phaseTotal = employees.reduce(
-                  (sum, employee) => sum + employee.count,
-                  0,
-                );
+          <div style={{ marginBottom: 16 }}>
+            <Title level={4} style={{ margin: 0 }}>
+              Sales Phase Employee Charts
+            </Title>
+            <Text type="secondary">
+              Employee-wise counts for lead, proposal, quotation, and purchase.
+            </Text>
+          </div>
+          <Row gutter={[16, 16]}>
+            {salesPhaseCharts.map((phase) => {
+              const employees = chartDataByModule(phase.key);
+              const phaseTotal = employees.reduce(
+                (sum, employee) => sum + employee.count,
+                0,
+              );
 
-                return (
-                  <Col key={phase.key} xs={24} xl={12}>
-                    <Card
-                      bordered={false}
+              return (
+                <Col key={phase.key} xs={24} xl={12}>
+                  <Card
+                    bordered={false}
+                    style={{
+                      background: isDark
+                        ? "linear-gradient(180deg, rgba(37,37,42,0.9), rgba(24,24,27,0.95))"
+                        : "linear-gradient(180deg, #ffffff, #f8fbff)",
+                    }}
+                  >
+                    <div
                       style={{
-                        background: isDark
-                          ? "linear-gradient(180deg, rgba(37,37,42,0.9), rgba(24,24,27,0.95))"
-                          : "linear-gradient(180deg, #ffffff, #f8fbff)",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "baseline",
+                        marginBottom: 12,
+                        gap: 12,
                       }}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "baseline",
-                          marginBottom: 12,
-                          gap: 12,
-                        }}
-                      >
-                        <div>
-                          <Title level={5} style={{ margin: 0 }}>
-                            {phase.title}
-                          </Title>
-                          <Text type="secondary">Employee distribution</Text>
-                        </div>
-                        <Statistic
-                          title="Total"
-                          value={phaseTotal}
-                          valueStyle={{ fontSize: 24 }}
-                        />
+                      <div>
+                        <Title level={5} style={{ margin: 0 }}>
+                          {phase.title}
+                        </Title>
+                        <Text type="secondary">Employee distribution</Text>
                       </div>
-                      {employees.length === 0 && !loading ? (
-                        <Empty description="No chart data" />
-                      ) : (
-                        <Chart
-                          option={getChartOption(phase, employees, isDark)}
-                          height={280}
-                        />
-                      )}
-                    </Card>
-                  </Col>
-                );
-              })}
-            </Row>
-          {/* </Card> */}
+                      <Statistic
+                        title="Total"
+                        value={phaseTotal}
+                        valueStyle={{ fontSize: 24 }}
+                      />
+                    </div>
+                    {employees.length === 0 && !loading ? (
+                      <Empty description="No chart data" />
+                    ) : (
+                      <Chart
+                        option={getChartOption(phase, employees, isDark)}
+                        height={280}
+                      />
+                    )}
+                  </Card>
+                </Col>
+              );
+            })}
+          </Row>
         </Col>
       </Row>
-    
+    </div>
   );
 }
 
