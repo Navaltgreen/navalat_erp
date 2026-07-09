@@ -61,7 +61,8 @@ class Proposal(models.Model):
 
     remarks = models.TextField(blank=True, null=True)
     converted_date = models.DateField(blank=True, null=True)
-
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 class Quotation(models.Model):
     quotation_status = models.CharField(max_length=100, blank=True, null=True,default="Pending")
@@ -104,7 +105,8 @@ class Quotation(models.Model):
          blank=True,
         null=True
     )
-
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 class PurchaseOrder(models.Model):
     purchase_order_status = models.CharField(max_length=100, blank=True, null=True,default="Pending")
@@ -135,7 +137,9 @@ class PurchaseOrder(models.Model):
     remarks = models.TextField(blank=True, null=True)
     converted_date = models.DateField(blank=True, null=True)
     pic = models.PositiveIntegerField(blank=True, null=True)
-
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
     def save(self, *args, **kwargs):
         is_new = self._state.adding
         super().save(*args, **kwargs)

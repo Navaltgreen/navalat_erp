@@ -2,6 +2,15 @@ from django.db.models import Count, Sum
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db.models.functions import TruncWeek
+from django.db.models.functions import TruncQuarter
+from django.db.models import Count, Sum, Avg
+from django.db.models.functions import TruncQuarter
+from rest_framework.decorators import action
+from rest_framework import viewsets
+
+from sales.models import Lead, Proposal, Quotation, PurchaseOrder
+from teams.models import Team
 
 from .views import APIResponseMixin
 from sales.models import Lead, Proposal, Quotation, PurchaseOrder
@@ -11,21 +20,26 @@ from teams.models import Team
 class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
 
     @action(detail=False, methods=["get"], url_path="performance")
-    def performance(self, request):
+    def weekly_performance(self, request):
         module = request.query_params.get("module")
+
         if module == "lead":
             queryset = (
                 Lead.objects
                 .exclude(pic__isnull=True)
-                .values("pic")
-                .annotate(total=Count("id"))
-                .order_by("-total")
+                .annotate(week=TruncWeek("created_at"))
+                .values("week", "pic")
+                .annotate(count=Count("id"))
+                .order_by("week", "pic")
             )
 
             data = [
                 {
-                    "label": Team.objects.filter(pk=item["pic"]).values_list("member", flat=True).first(),
-                    "value": item["total"],
+                    "week": item["week"].strftime("%Y-W%U"),
+                    "name": Team.objects.filter(pk=item["pic"])
+                                        .values_list("member", flat=True)
+                                        .first(),
+                    "count": item["count"],
                 }
                 for item in queryset
             ]
@@ -34,15 +48,19 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
             queryset = (
                 Proposal.objects
                 .exclude(pic_for_proposal__isnull=True)
-                .values("pic_for_proposal")
-                .annotate(total=Count("id"))
-                .order_by("-total")
+                .annotate(week=TruncWeek("created_at"))
+                .values("week", "pic_for_proposal")
+                .annotate(count=Count("id"))
+                .order_by("week", "pic_for_proposal")
             )
 
             data = [
                 {
-                    "label": Team.objects.filter(pk=item["pic_for_proposal"]).values_list("member", flat=True).first(),
-                    "value": item["total"],
+                    "week": item["week"].strftime("%Y-W%U"),
+                    "name": Team.objects.filter(pk=item["pic_for_proposal"])
+                                        .values_list("member", flat=True)
+                                        .first(),
+                    "count": item["count"],
                 }
                 for item in queryset
             ]
@@ -51,18 +69,19 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
             queryset = (
                 Quotation.objects
                 .exclude(pic__isnull=True)
-                .values("pic")
-                .annotate(
-                    total=Count("id"),
-                    amount=Sum("amount")
-                )
-                .order_by("-total")
+                .annotate(week=TruncWeek("created_at"))
+                .values("week", "pic")
+                .annotate(count=Count("id"))
+                .order_by("week", "pic")
             )
 
             data = [
                 {
-                    "label": Team.objects.filter(pk=item["pic"]).values_list("member", flat=True).first(),
-                    "value": item["total"],
+                    "week": item["week"].strftime("%Y-W%U"),
+                    "name": Team.objects.filter(pk=item["pic"])
+                                        .values_list("member", flat=True)
+                                        .first(),
+                    "count": item["count"],
                 }
                 for item in queryset
             ]
@@ -71,21 +90,24 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
             queryset = (
                 PurchaseOrder.objects
                 .exclude(pic__isnull=True)
-                .values("pic")
-                .annotate(
-                    total=Count("id"),
-                    amount=Sum("amount")
-                )
-                .order_by("-total")
+                .annotate(quarter=TruncQuarter("created_at"))
+                .values("quarter", "pic")
+                .annotate(total_amount=Sum("amount"))
+                .order_by("quarter", "pic")
             )
 
+                
             data = [
                 {
-                    "label": Team.objects.filter(pk=item["pic"]).values_list("member", flat=True).first(),
-                    "value": item["total"],
+                    "quarter": f"Q{((item['quarter'].month - 1) // 3) + 1} {item['quarter'].year}",
+                    "name": Team.objects.filter(pk=item["pic"])
+                                        .values_list("member", flat=True)
+                                        .first(),
+                    "total_amount": float(item["total_amount"] or 0),
                 }
                 for item in queryset
             ]
+
 
         else:
             return Response(
@@ -97,9 +119,8 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
 
         return self.get_response(
             data={"chart_data": data},
-            message=f"{module.capitalize()} performance fetched successfully",
+            message=f"{module.capitalize()} weekly performance fetched successfully",
         )
-
 
 
     @action(detail=False, methods=["get"], url_path="history")
@@ -185,3 +206,183 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
             },
             message="History fetched successfully",
         )
+
+    @action(detail=False, methods=["get"], url_path="summary")
+    def summary(self, request):
+
+                # -------------------- Cards --------------------
+
+                lead_card = {
+                    "total": Lead.objects.count(),
+                    "pending": Lead.objects.filter(
+                        lead_status__iexact="Pending"
+                    ).count(),
+                    "converted": Lead.objects.filter(
+                        is_converted=True
+                    ).count(),
+                    "declined": Lead.objects.filter(
+                        lead_status__iexact="Declined"
+                    ).count(),
+                }
+
+                proposal_card = {
+                    "total": Proposal.objects.count(),
+                    "pending": Proposal.objects.filter(
+                        proposal_status__iexact="Pending"
+                    ).count(),
+                    "submitted": Proposal.objects.filter(
+                        proposal_status__iexact="Submitted"
+                    ).count(),
+                    "approved": Proposal.objects.filter(
+                        proposal_status__iexact="Approved"
+                    ).count(),
+                }
+
+                quotation_card = {
+                    "count": Quotation.objects.count(),
+                    "total_amount": Quotation.objects.aggregate(
+                        total=Sum("amount")
+                    )["total"] or 0,
+                    "pending": Quotation.objects.filter(
+                        quotation_status__iexact="Pending"
+                    ).count(),
+                    "approved": Quotation.objects.filter(
+                        quotation_status__iexact="Approved"
+                    ).count(),
+                    "declined": Quotation.objects.filter(
+                        quotation_status__iexact="Declined"
+                    ).count(),
+                }
+
+                purchase_card = {
+                    "orders": PurchaseOrder.objects.count(),
+                    "total_amount": PurchaseOrder.objects.aggregate(
+                        total=Sum("amount")
+                    )["total"] or 0,
+                    "average_order": PurchaseOrder.objects.aggregate(
+                        avg=Avg("amount")
+                    )["avg"] or 0,
+                }
+
+                # -------------------- Quarter-wise Purchase Order --------------------
+
+                quarter_summary = []
+
+                purchase_queryset = (
+                    PurchaseOrder.objects
+                    .exclude(amount__isnull=True)
+                    .annotate(
+                        quarter=TruncQuarter("created_at")
+                    )
+                    .values("quarter")
+                    .annotate(
+                        total_orders=Count("id"),
+                        total_amount=Sum("amount")
+                    )
+                    .order_by("quarter")
+                )
+
+                for row in purchase_queryset:
+
+                    q = ((row["quarter"].month - 1) // 3) + 1
+
+                    quarter_summary.append({
+                        "quarter": f"Q{q}-{row['quarter'].year}",
+                        "orders": row["total_orders"],
+                        "amount": float(row["total_amount"] or 0)
+                    })
+
+                # -------------------- PIC Performance --------------------
+
+                pic_summary = []
+
+                for team in Team.objects.all():
+
+                    lead_count = Lead.objects.filter(
+                        pic=team.pk
+                    ).count()
+
+                    proposal_count = Proposal.objects.filter(
+                        pic_for_proposal=team.pk
+                    ).count()
+
+                    quotation_total = (
+                        Quotation.objects.filter(
+                            pic=team.pk
+                        ).aggregate(
+                            total=Sum("amount")
+                        )["total"] or 0
+                    )
+
+                    purchase_total = (
+                        PurchaseOrder.objects.filter(
+                            pic=team.pk
+                        ).aggregate(
+                            total=Sum("amount")
+                        )["total"] or 0
+                    )
+
+                    if (
+                        lead_count
+                        or proposal_count
+                        or quotation_total
+                        or purchase_total
+                    ):
+                        pic_summary.append({
+                            "pic": team.member,
+                            "leads": lead_count,
+                            "proposals": proposal_count,
+                            "quotation_amount": float(quotation_total),
+                            "purchase_order_amount": float(purchase_total)
+                        })
+
+                # -------------------- Quarter-wise PIC Performance --------------------
+
+                pic_quarter = []
+
+                purchase_pic_queryset = (
+                    PurchaseOrder.objects
+                    .exclude(pic__isnull=True)
+                    .annotate(
+                        quarter=TruncQuarter("created_at")
+                    )
+                    .values("quarter", "pic")
+                    .annotate(
+                        total_amount=Sum("amount"),
+                        orders=Count("id")
+                    )
+                    .order_by("quarter", "pic")
+                )
+
+                for row in purchase_pic_queryset:
+
+                    q = ((row["quarter"].month - 1) // 3) + 1
+
+                    member = Team.objects.filter(
+                        pk=row["pic"]
+                    ).values_list(
+                        "member",
+                        flat=True
+                    ).first()
+
+                    pic_quarter.append({
+                        "quarter": f"Q{q}-{row['quarter'].year}",
+                        "pic": member,
+                        "orders": row["orders"],
+                        "amount": float(row["total_amount"] or 0)
+                    })
+
+                return self.get_response(
+                    data={
+                        "cards": {
+                            "lead": lead_card,
+                            "proposal": proposal_card,
+                            "quotation": quotation_card,
+                            "purchase_order": purchase_card
+                        },
+                        "quarter_summary": quarter_summary,
+                        "pic_performance": pic_summary,
+                        "quarter_pic_performance": pic_quarter
+                    },
+                    message="Dashboard fetched successfully"
+                )
