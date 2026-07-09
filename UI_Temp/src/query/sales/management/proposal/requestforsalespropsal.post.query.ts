@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { requestSalesProposalMutate } from "../../../../services/sales/management/proposal/requestSalesProposalStatus.post.service";
+import { proposalQuotationsQueryKeys } from "./quotations.query";
 import { quotationQueryKeys } from "../quotationphase1/get.query";
 import { quotationQueryKeys as purchaseQueryKeys } from "../purchase/get.query";
 type RequestProposalPayload = {
@@ -16,12 +17,19 @@ export function useRequestSalesProposalStatus() {
     mutationFn: ({ id, ...payload }: RequestProposalPayload) =>
       requestSalesProposalMutate(id, payload),
 
-    onSuccess: async () => {
+    onSuccess: async (_, variables) => {
       await queryClient.invalidateQueries({
         queryKey: ["proposal"],
       });
       await queryClient.invalidateQueries({
+        queryKey: proposalQuotationsQueryKeys.list(variables.id),
+      });
+      await queryClient.invalidateQueries({
         queryKey: purchaseQueryKeys.all,
+      });
+      await queryClient.refetchQueries({
+        queryKey: proposalQuotationsQueryKeys.list(variables.id),
+        type: "active",
       });
       await queryClient.refetchQueries({
         queryKey: purchaseQueryKeys.all,
