@@ -19,6 +19,7 @@ export type LeadApproveSource = {
   id: number;
   name: string;
   title: string;
+  priority?: string;
   division: string;
   client: string;
   email: string;
@@ -36,12 +37,14 @@ type LeadApproveModalProps = {
 type ProposalDraft = {
   proposalNumber: string;
   picForProposal: number | null;
+  priority: "Low" | "Medium" | "High" | null;
 };
 
 function createDraft(): ProposalDraft {
   return {
     proposalNumber: "",
     picForProposal: null,
+    priority: null,
   };
 }
 
@@ -185,9 +188,12 @@ function LeadApproveModal({ open, lead, onClose }: LeadApproveModalProps) {
 
     if (
       !proposalDraft.proposalNumber.trim() ||
-      proposalDraft.picForProposal === null
+      proposalDraft.picForProposal === null ||
+      proposalDraft.priority === null
     ) {
-      setSubmitError("Please complete proposal number and PIC before submit.");
+      setSubmitError(
+        "Please complete proposal number, PIC and priority before submit.",
+      );
       return;
     }
 
@@ -218,6 +224,7 @@ function LeadApproveModal({ open, lead, onClose }: LeadApproveModalProps) {
         client: lead.client,
         email: lead.email,
         phone: lead.phone,
+        priority: proposalDraft.priority,
         proposal_number: proposalDraft.proposalNumber.trim(),
         pic_for_proposal: proposalDraft.picForProposal,
       },
@@ -311,6 +318,25 @@ function LeadApproveModal({ open, lead, onClose }: LeadApproveModalProps) {
                   setProposalDraft((current) => ({
                     ...current,
                     picForProposal: value,
+                  }));
+                }}
+              />
+
+              <span style={{ fontWeight: 600 }}>Priority</span>
+              <Select
+                style={{ width: "100%" }}
+                placeholder="Select Priority"
+                value={proposalDraft.priority ?? undefined}
+                options={[
+                  { label: "Low", value: "Low" },
+                  { label: "Medium", value: "Medium" },
+                  { label: "High", value: "High" },
+                ]}
+                onChange={(value) => {
+                  setSubmitError(null);
+                  setProposalDraft((current) => ({
+                    ...current,
+                    priority: value,
                   }));
                 }}
               />

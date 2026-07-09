@@ -32,6 +32,7 @@ function ProposalTable() {
     id: number;
     name: string;
     title: string;
+    priority: string;
     date: string;
     division: string;
     client: string;
@@ -206,6 +207,24 @@ function ProposalTable() {
       title: "Proposal No.",
       dataIndex: "proposal_no",
       key: "proposal_no",
+    },
+    {
+      title: "Priority",
+      dataIndex: "priority",
+      key: "priority",
+      render: (priority: string) => {
+        const normalized = String(priority ?? "").toLowerCase();
+        const color =
+          normalized === "high"
+            ? "red"
+            : normalized === "medium"
+              ? "gold"
+              : normalized === "low"
+                ? "green"
+                : "default";
+
+        return <Tag color={color}>{priority || "-"}</Tag>;
+      },
     },
     {
       title: "Client",

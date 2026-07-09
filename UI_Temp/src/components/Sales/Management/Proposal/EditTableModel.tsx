@@ -94,6 +94,7 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
         remarks: editData.remark ?? "",
         proposal_number: editData.proposal_no ?? undefined,
         pic: editData.pic ?? undefined,
+        priority: editData.priority ?? undefined,
       });
 
       const resetTimerId = window.setTimeout(() => {
@@ -166,6 +167,7 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
                   remarks: values.remarks,
                   proposal_number: values.proposal_number ?? null,
                   pic: values.pic,
+                  priority: values.priority,
                 },
               },
               {
@@ -232,6 +234,20 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
                 label: member.name,
                 value: String(member.id),
               }))}
+            />
+          </Form.Item>
+          <Form.Item
+            label="Priority"
+            name="priority"
+            rules={[{ required: true, message: "Please select priority" }]}
+          >
+            <Select
+              placeholder="Select priority"
+              options={[
+                { label: "Low", value: "Low" },
+                { label: "Medium", value: "Medium" },
+                { label: "High", value: "High" },
+              ]}
             />
           </Form.Item>
           <Form.Item label="Remarks" name="remarks">
