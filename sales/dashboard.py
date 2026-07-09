@@ -142,7 +142,7 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
                 "id": proposal.id,
                 "proposal_number": proposal.proposal_number,
                 "status": proposal.proposal_status,
-                "created_at": proposal.created_at,
+                # "created_at": proposal.created_at,
                 "converted_date": proposal.converted_date,
             })
 
@@ -159,12 +159,12 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
                     "quotation_number": quotation.quotation_number,
                     "status": quotation.quotation_status,
                     "amount": quotation.amount,
-                    "created_at": quotation.created_at,
+                    # "created_at": quotation.created_at,
                     "converted_date": quotation.converted_date,
                 })
 
                 purchase_orders = PurchaseOrder.objects.filter(
-                    quotation=quotation
+                    Proposal=proposal
                 )
 
                 for po in purchase_orders:
@@ -175,7 +175,7 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
                         "purchase_order_number": po.purchase_order_number,
                         "status": po.purchase_order_status,
                         "amount": po.amount,
-                        "created_at": po.created_at,
+                        # "created_at": po.created_at,
                         "converted_date": po.converted_date,
                     })
 

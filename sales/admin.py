@@ -71,17 +71,17 @@ class QuotationAdmin(admin.ModelAdmin):
         "version",
         "status",
         "amount",
-        "date",
+        "converted_date",
     )
     search_fields = (
         "quotation_number",
-        "name",
-        "client",
+        # "name",
+        # "client",
     )
     list_filter = (
         "status",
         "version",
-        "date",
+        "converted_date",
     )
     autocomplete_fields = ("proposal",)
 
@@ -91,14 +91,12 @@ class PurchaseOrderAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "purchase_order_number",
-        "quotation",
+        "Proposal",
         "amount",
-        "date",
+        "converted_date",
     )
     search_fields = (
         "purchase_order_number",
-        "name",
-        "client",
     )
-    list_filter = ("date",)
-    autocomplete_fields = ("quotation",)
+    list_filter = ("converted_date",)
+    autocomplete_fields = ("Proposal",)
