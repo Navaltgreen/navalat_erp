@@ -50,7 +50,6 @@ class BaseSalesViewSet(APIResponseMixin, viewsets.ModelViewSet):
         
         for item in data:
             if "pic" in item:
-                print(team_map.get(item["pic"]))
                 item["pic"] = team_map.get(item["pic"])
 
             # if "pic_for_proposal" in item:
@@ -322,10 +321,24 @@ class ProposalViewSet(BaseSalesViewSet):
 
     @action(detail=False, methods=["get"])
     def get_proposals(self, request):
-        proposals = Proposal.objects.select_related('lead').all()
+
+        team_map = {
+            t.id: t.member
+            for t in Team.objects.filter(team_id=100)
+        }
+
+        proposals = (
+            Proposal.objects
+            .select_related("lead")
+            .all()
+            .order_by("-id")
+        )
+
         data = []
+
         for proposal in proposals:
             lead = proposal.lead
+
             data.append({
                 "id": proposal.id,
                 "sl_no": proposal.id,
@@ -337,12 +350,12 @@ class ProposalViewSet(BaseSalesViewSet):
                 "proposal_status": proposal.proposal_status,
                 "is_converted": proposal.is_converted,
                 "proposal_number": proposal.proposal_number,
-                "pic_for_proposal": proposal.pic_for_proposal,
+                "pic_for_proposal": team_map.get(proposal.pic_for_proposal),
                 "attachment": proposal.attachment,
                 "remarks": proposal.remarks,
                 "converted_date": proposal.converted_date,
                 "lead": proposal.lead_id,
-                "priority": proposal.priority
+                "priority": proposal.priority,
             })
 
         return Response({
@@ -356,7 +369,12 @@ class ProposalViewSet(BaseSalesViewSet):
     def quotations(self, request, pk=None):
         proposal = self.get_object()
 
-        quotations = (
+        team_map = {
+            t.id: t.member
+            for t in Team.objects.filter(team_id=100)
+        }
+
+        quotations = list(
             proposal.quotations.all()
             .order_by("-id")
             .values(
@@ -375,11 +393,14 @@ class ProposalViewSet(BaseSalesViewSet):
             )
         )
 
+        for item in quotations:
+            item["pic"] = team_map.get(item["pic"])
+
         return Response({
             "success": True,
             "message": "Quotations fetched successfully",
             "data": {
-                "quotations": list(quotations)
+                "quotations": quotations
             },
             "meta": {}
         })
