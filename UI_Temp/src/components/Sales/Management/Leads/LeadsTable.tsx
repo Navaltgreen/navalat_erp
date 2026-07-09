@@ -165,6 +165,7 @@ function LeadsTable() {
     serialNumber: number;
     name: string;
     title: string;
+    priority: string;
     date: string;
     division: string;
     client: string;
@@ -316,6 +317,25 @@ function LeadsTable() {
       key: "title",
       width: 220,
     },
+    {
+      title: "Priority",
+      dataIndex: "priority",
+      key: "priority",
+      width: 120,
+      render: (priority: string) => {
+        const normalized = String(priority ?? "").toLowerCase();
+        const color =
+          normalized === "high"
+            ? "red"
+            : normalized === "medium"
+              ? "gold"
+              : normalized === "low"
+                ? "green"
+                : "default";
+
+        return <Tag color={color}>{priority || "-"}</Tag>;
+      },
+    },
 
     {
       title: "Date",
@@ -418,7 +438,8 @@ function LeadsTable() {
       //   width: 100,
       render: (_, record) => (
         <Flex gap={4}>
-          {record?.leadStatus == "Pending"|| record?.leadStatus == "Approved" ? (
+          {record?.leadStatus == "Pending" ||
+          record?.leadStatus == "Approved" ? (
             <Flex gap={4}>
               <Button
                 color="green"

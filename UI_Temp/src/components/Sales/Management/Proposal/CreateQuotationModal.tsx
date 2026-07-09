@@ -1,7 +1,8 @@
-import { Button, Form, Input, InputNumber, Modal, Space } from "antd";
+import { Button, Form, Input, InputNumber, Modal, Select, Space } from "antd";
 import { useEffect } from "react";
 
 import { useRequestSalesProposalStatus } from "../../../../query/sales/management/proposal/requestforsalespropsal.post.query";
+import { useSalesTeamMembersStore } from "../../../../store/sales/team-members.store";
 import { showNotification } from "../utils/showNotification";
 
 export type ProposalQuotationSource = {
@@ -18,6 +19,7 @@ type CreateQuotationModalProps = {
 type CreateQuotationFormValues = {
   amount: number;
   remarks: string;
+  pic: string;
 };
 
 function CreateQuotationModal({
@@ -28,6 +30,7 @@ function CreateQuotationModal({
   const [form] = Form.useForm<CreateQuotationFormValues>();
   const { mutate: requestSalesProposalMutate, isPending } =
     useRequestSalesProposalStatus();
+  const members = useSalesTeamMembersStore((state) => state.data);
 
   useEffect(() => {
     if (!open) {
@@ -49,6 +52,7 @@ function CreateQuotationModal({
         proposal_status: "Pending",
         amount: values.amount,
         remarks: values.remarks,
+        pic: values.pic,
       },
       {
         onSuccess: () => {
@@ -96,6 +100,20 @@ function CreateQuotationModal({
           rules={[{ required: true, message: "Please enter remark" }]}
         >
           <Input.TextArea rows={4} placeholder="Enter remark" />
+        </Form.Item>
+
+        <Form.Item
+          label="PIC"
+          name="pic"
+          rules={[{ required: true, message: "Please select PIC" }]}
+        >
+          <Select
+            placeholder="Select PIC"
+            options={members.map((member) => ({
+              label: member.name,
+              value: String(member.id),
+            }))}
+          />
         </Form.Item>
 
         <Form.Item style={{ marginBottom: 0 }}>

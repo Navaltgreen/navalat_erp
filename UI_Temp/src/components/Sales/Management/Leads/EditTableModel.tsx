@@ -50,6 +50,7 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
       form.setFieldsValue({
         name: editData.name,
         title: editData.title,
+        priority: editData.priority,
         division: editData.division,
         client: editData.client,
         lead_status: editData.leadStatus,
@@ -160,6 +161,25 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
               </Form.Item>
             </Col>
 
+            <Col span={12}>
+              <Form.Item
+                label="Priority"
+                name="priority"
+                rules={[{ required: true, message: "Please select priority" }]}
+              >
+                <Select
+                  placeholder="Select priority"
+                  options={[
+                    { label: "Low", value: "Low" },
+                    { label: "Medium", value: "Medium" },
+                    { label: "High", value: "High" },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
             <Col span={12}>
               <Form.Item label="PIC" name="pic" rules={[{ required: true }]}>
                 <Select

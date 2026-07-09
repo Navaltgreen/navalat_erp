@@ -1,6 +1,7 @@
 export type requestProposalBody = {
   is_converted: boolean;
   lead_status: "Approved" | "Declined" | "Pending";
+  priority?: "Low" | "Medium" | "High";
   name?: string;
   title?: string;
   division?: string;
