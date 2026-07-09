@@ -8,9 +8,10 @@ from django.db.models import Count, Sum, Avg
 from django.db.models.functions import TruncQuarter
 from rest_framework.decorators import action
 from rest_framework import viewsets
-
+from works.models import Works
 from sales.models import Lead, Proposal, Quotation, PurchaseOrder
 from teams.models import Team
+from history.models import StatusHistory
 
 from .views import APIResponseMixin
 from sales.models import Lead, Proposal, Quotation, PurchaseOrder
@@ -381,3 +382,122 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
                     },
                     message="Dashboard fetched successfully"
                 )
+
+
+    @action(detail=False, methods=["get"], url_path="sales-works")
+    def sales_works(self, request):
+
+        works = Works.objects.filter(category="Sales").order_by("-id")
+
+        team_map = dict(
+            Team.objects.values_list("id", "member")
+        )
+
+        data = []
+
+        for work in works:
+
+            team_names = [
+                team_map.get(team_id)
+                for team_id in (work.team_id or [])
+                if team_map.get(team_id)
+            ]
+
+            data.append({
+                "id": work.id,
+                "project_id": work.project_id,
+                "category": work.category,
+                "subcategory": work.subcategory,
+                "tab": work.tab,
+                "status": work.status,
+                "description": work.description,
+                "comments": work.comments,
+                "images": work.images,
+                "team": team_names,
+            })
+
+        return self.get_response(
+            data={"works": data},
+            message="Sales works fetched successfully",
+        )
+
+    @action(detail=False, methods=["get"], url_path="logs")
+    def logs(self, request):
+
+        module = request.query_params.get("module")
+
+        if module == "lead":
+            work_ids = Lead.objects.values_list("id", flat=True)
+
+        elif module == "proposal":
+            work_ids = Proposal.objects.values_list("id", flat=True)
+
+        elif module == "quotation":
+            work_ids = Quotation.objects.values_list("id", flat=True)
+
+        elif module == "purchase":
+            work_ids = PurchaseOrder.objects.values_list("id", flat=True)
+
+        else:
+            return Response(
+                {
+                    "message": "Invalid module. Use lead, proposal, quotation or purchase."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        logs = (
+            StatusHistory.objects
+            .filter(work_id__in=work_ids)
+            .order_by("-changed_at")
+        )
+
+        team_map = dict(
+            Team.objects.values_list("id", "member")
+        )
+        
+        name_map = {}
+
+        if module == "lead":
+            name_map = dict(
+                Lead.objects.filter(id__in=work_ids)
+                .values_list("id", "name")
+            )
+
+        elif module == "proposal":
+            name_map = dict(
+                Proposal.objects.filter(id__in=work_ids)
+                .values_list("id", "proposal_number")
+            )
+
+        elif module == "quotation":
+            name_map = dict(
+                Quotation.objects.filter(id__in=work_ids)
+                .values_list("id", "quotation_number")
+            )
+
+        elif module == "purchase":
+            name_map = dict(
+                PurchaseOrder.objects.filter(id__in=work_ids)
+                .values_list("id", "purchase_order_number")
+            )
+
+        data = [
+            {
+                "id": log.id,
+                "work_id": log.work_id,
+                "work_name": name_map.get(log.work_id),
+                "previous_status": log.previous_status,
+                "status": log.status,
+                "change_type": log.change_type,
+                "comments": log.comments,
+                "team_member": team_map.get(log.team_member_id),
+                "changed_at": log.changed_at,
+            }
+            for log in logs
+        ]
+
+        return self.get_response(
+            data={"logs": data},
+            message=f"{module.capitalize()} logs fetched successfully",
+        )
