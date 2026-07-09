@@ -33,17 +33,20 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
                 .order_by("week", "pic")
             )
 
-            data = [
-                {
-                    "week": item["week"].strftime("%Y-W%U"),
-                    "name": Team.objects.filter(pk=item["pic"])
-                                        .values_list("member", flat=True)
-                                        .first(),
-                    "count": item["count"],
-                }
-                for item in queryset
-            ]
+            data = []
 
+            for item in queryset:
+                member = Team.objects.filter(
+                    pk=item["pic"]
+                ).values_list(
+                    "member",
+                    flat=True
+                ).first()
+
+                data.append({
+                    "label": f"{item['week'].strftime('%Y-W%U')} - {member}",
+                    "value": item["count"],
+                })
         elif module == "proposal":
             queryset = (
                 Proposal.objects
@@ -55,15 +58,12 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
             )
 
             data = [
-                {
-                    "week": item["week"].strftime("%Y-W%U"),
-                    "name": Team.objects.filter(pk=item["pic_for_proposal"])
-                                        .values_list("member", flat=True)
-                                        .first(),
-                    "count": item["count"],
-                }
-                for item in queryset
-            ]
+                    {
+                        "label": f"{item['week'].strftime('%Y-W%U')} - {Team.objects.filter(pk=item['pic_for_proposal']).values_list('member', flat=True).first()}",
+                        "value": item["count"],
+                    }
+                    for item in queryset
+                ]
 
         elif module == "quotation":
             queryset = (
@@ -77,11 +77,9 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
 
             data = [
                 {
-                    "week": item["week"].strftime("%Y-W%U"),
-                    "name": Team.objects.filter(pk=item["pic"])
-                                        .values_list("member", flat=True)
-                                        .first(),
-                    "count": item["count"],
+                    "label":f"{item["week"].strftime("%Y-W%U")}-{Team.objects.filter(pk=item['pic']).values_list('member', flat=True).first()}",
+                        "value": item["count"],
+
                 }
                 for item in queryset
             ]
@@ -99,11 +97,8 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
                 
             data = [
                 {
-                    "quarter": f"Q{((item['quarter'].month - 1) // 3) + 1} {item['quarter'].year}",
-                    "name": Team.objects.filter(pk=item["pic"])
-                                        .values_list("member", flat=True)
-                                        .first(),
-                    "total_amount": float(item["total_amount"] or 0),
+                    "label": f"Q{((item['quarter'].month - 1) // 3) + 1} {item['quarter'].year}-{Team.objects.filter(pk=item['pic']).values_list('member', flat=True).first()}",
+                        "value": float(item["total_amount"] or 0),
                 }
                 for item in queryset
             ]
