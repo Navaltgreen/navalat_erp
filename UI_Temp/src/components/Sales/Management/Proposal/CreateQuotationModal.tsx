@@ -46,7 +46,7 @@ function CreateQuotationModal({
       {
         id: proposal.id,
         is_converted: false,
-        proposal_status: "Approved",
+        proposal_status: "Pending",
         amount: values.amount,
         remarks: values.remarks,
       },

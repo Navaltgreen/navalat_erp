@@ -38,7 +38,7 @@ const WorkList = () => {
 
   useEffect(() => {
     fetchAllProjects();
-    fetchTeamMembers(22);
+    fetchTeamMembers(100);
   }, []);
 
   const projectOptions = projects?.map((p) => ({

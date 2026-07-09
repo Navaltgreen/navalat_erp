@@ -285,6 +285,7 @@ function ProposalTable() {
                     {
                       id: record.id,
                       is_converted: true,
+                      proposal_status: "Approved",
                     },
                     {
                       onSuccess: () => {
