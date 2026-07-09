@@ -1,12 +1,4 @@
-import {
-  Card,
-  Col,
-  Empty,
-  Row,
-  Skeleton,
-  Space,
-  Typography,
-} from "antd";
+import { Card, Col, Empty, Row, Skeleton, Space, Typography } from "antd";
 import type { CSSProperties, ReactNode } from "react";
 import type { EChartsOption } from "echarts";
 import {
@@ -48,13 +40,13 @@ type MetricCardDefinition = {
 };
 
 function formatCurrency(value: number, compact = false) {
-  const formattedValue = new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
     notation: compact ? "compact" : "standard",
   }).format(value);
-
-  return `${formattedValue}`;
 }
 
 function getMetricCards(): MetricCardDefinition[] {
@@ -125,7 +117,8 @@ function getMetricCards(): MetricCardDefinition[] {
       iconBackground: "rgba(147, 51, 234, 0.12)",
       iconColor: "#7c3aed",
       value: (data) => data.cards.quotation.count,
-      subtitle: (data) => `${formatCurrency(data.cards.quotation.total_amount)} total`,
+      subtitle: (data) =>
+        `${formatCurrency(data.cards.quotation.total_amount)} total`,
       chips: (data) => [
         {
           label: "Pending",
@@ -156,16 +149,9 @@ function getMetricCards(): MetricCardDefinition[] {
       iconBackground: "rgba(132, 204, 22, 0.14)",
       iconColor: "#65a30d",
       value: (data) => data.cards.purchase_order.orders,
-      subtitle: (data) => `${formatCurrency(data.cards.purchase_order.total_amount)} total`,
-      chips: (data) => [
-        {
-          label: "Avg Order",
-          value: data.cards.purchase_order.average_order,
-          color: "#06b6d4",
-          background: "#ecfeff",
-          icon: <CircleDollarSign size={14} />,
-        },
-      ],
+      subtitle: (data) =>
+        `${formatCurrency(data.cards.purchase_order.total_amount)} total`,
+      chips: () => [],
     },
   ];
 }
@@ -231,7 +217,9 @@ function getPicActivityChartOption(
     },
     yAxis: {
       type: "value",
-      splitLine: { lineStyle: { color: getGridLineColor(isDark), type: "dashed" } },
+      splitLine: {
+        lineStyle: { color: getGridLineColor(isDark), type: "dashed" },
+      },
       axisLabel: { color: getAxisTextColor(isDark) },
     },
     series: [
@@ -282,7 +270,9 @@ function getRevenueComparisonChartOption(
     },
     yAxis: {
       type: "value",
-      splitLine: { lineStyle: { color: getGridLineColor(isDark), type: "dashed" } },
+      splitLine: {
+        lineStyle: { color: getGridLineColor(isDark), type: "dashed" },
+      },
       axisLabel: {
         color: getAxisTextColor(isDark),
         formatter: (value: number) => `${value}`,
@@ -414,11 +404,16 @@ function MetricCard({
           >
             {definition.title}
           </Text>
-          <Title level={1} style={{ margin: "6px 0 0", color: isDark ? "#fafafa" : "#1f2340" }}>
+          <Title
+            level={1}
+            style={{ margin: "6px 0 0", color: isDark ? "#fafafa" : "#1f2340" }}
+          >
             {definition.value(data)}
           </Title>
           {definition.subtitle ? (
-            <Text style={{ color: isDark ? "#d4d4d8" : "#8a8f98", fontSize: 16 }}>
+            <Text
+              style={{ color: isDark ? "#d4d4d8" : "#8a8f98", fontSize: 16 }}
+            >
               {definition.subtitle(data)}
             </Text>
           ) : null}
@@ -463,7 +458,12 @@ function QuarterPicHighlights({
   isDark: boolean;
 }) {
   if (items.length === 0) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No quarter PIC highlights" />;
+    return (
+      <Empty
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+        description="No quarter PIC highlights"
+      />
+    );
   }
 
   return (
@@ -487,16 +487,28 @@ function QuarterPicHighlights({
             }}
           >
             <div>
-              <Text style={{ display: "block", color: isDark ? "#fafafa" : "#1f2340", fontWeight: 600 }}>
+              <Text
+                style={{
+                  display: "block",
+                  color: isDark ? "#fafafa" : "#1f2340",
+                  fontWeight: 600,
+                }}
+              >
                 {item.pic}
               </Text>
-              <Text style={{ color: isDark ? "#a1a1aa" : "#8a8f98" }}>{item.quarter}</Text>
+              <Text style={{ color: isDark ? "#a1a1aa" : "#8a8f98" }}>
+                {item.quarter}
+              </Text>
             </div>
             <div style={{ textAlign: "right" }}>
-              <Text style={{ display: "block", color: "#65a30d", fontWeight: 600 }}>
+              <Text
+                style={{ display: "block", color: "#65a30d", fontWeight: 600 }}
+              >
                 {formatCurrency(item.amount)}
               </Text>
-              <Text style={{ color: isDark ? "#a1a1aa" : "#8a8f98" }}>{item.orders} orders</Text>
+              <Text style={{ color: isDark ? "#a1a1aa" : "#8a8f98" }}>
+                {item.orders} orders
+              </Text>
             </div>
           </div>
         </div>
@@ -521,10 +533,10 @@ function SalesSummaryWidget() {
         style={{
           borderRadius: 28,
           marginBottom: 28,
-        //   background: isDark
-        //     ? "linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)"
-        //     : "linear-gradient(135deg, #2f76ff 0%, #1557b9 100%)",
-        //   boxShadow: "0 18px 40px rgba(37, 99, 235, 0.24)",
+          //   background: isDark
+          //     ? "linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)"
+          //     : "linear-gradient(135deg, #2f76ff 0%, #1557b9 100%)",
+          //   boxShadow: "0 18px 40px rgba(37, 99, 235, 0.24)",
         }}
       >
         {loading && !quarterSummary ? (
@@ -532,22 +544,24 @@ function SalesSummaryWidget() {
         ) : (
           <Row gutter={[8, 8]} align="middle">
             <Col xs={24} lg={14}>
-              <Text style={{  fontSize: 18, letterSpacing: 1 }}>
+              <Text style={{ fontSize: 18, letterSpacing: 1 }}>
                 QUARTER SUMMARY
               </Text>
-              <Title level={1} style={{  margin: "10px 0 8px" }}>
+              <Title level={1} style={{ margin: "10px 0 8px" }}>
                 {quarterSummary?.quarter ?? "No quarter data"}
               </Title>
-              <Text style={{  fontSize: 18 }}>
-                {quarterSummary ? `${quarterSummary.orders} Order${quarterSummary.orders === 1 ? "" : "s"}` : "Awaiting records"}
+              <Text style={{ fontSize: 18 }}>
+                {quarterSummary
+                  ? `${quarterSummary.orders} Order${quarterSummary.orders === 1 ? "" : "s"}`
+                  : "Awaiting records"}
               </Text>
             </Col>
             <Col xs={24} lg={10}>
               <div style={{ textAlign: "right" }}>
-                <Text style={{  fontSize: 18, letterSpacing: 0.6 }}>
+                <Text style={{ fontSize: 18, letterSpacing: 0.6 }}>
                   TOTAL REVENUE
                 </Text>
-                <Title level={1} style={{  margin: "10px 0 0" }}>
+                <Title level={1} style={{ margin: "10px 0 0" }}>
                   {formatCurrency(quarterSummary?.amount ?? 0)}
                 </Title>
               </div>
@@ -568,26 +582,41 @@ function SalesSummaryWidget() {
       <Row gutter={[20, 20]} style={{ marginBottom: 20 }}>
         <Col xs={24} xl={12}>
           <Card bordered={false} style={getPanelStyle(isDark)}>
-            <SectionHeader title="PIC Activity (Leads & Proposals)" color={contentColor} />
+            <SectionHeader
+              title="PIC Activity (Leads & Proposals)"
+              color={contentColor}
+            />
             {loading && data.pic_performance.length === 0 ? (
               <Skeleton active paragraph={{ rows: 8 }} title={false} />
             ) : data.pic_performance.length === 0 ? (
               <Empty description="No PIC activity data" />
             ) : (
-              <Chart option={getPicActivityChartOption(data.pic_performance, isDark)} height={320} />
+              <Chart
+                option={getPicActivityChartOption(data.pic_performance, isDark)}
+                height={320}
+              />
             )}
           </Card>
         </Col>
 
         <Col xs={24} xl={12}>
           <Card bordered={false} style={getPanelStyle(isDark)}>
-            <SectionHeader title="PIC Revenue Comparison" color={contentColor} />
+            <SectionHeader
+              title="PIC Revenue Comparison"
+              color={contentColor}
+            />
             {loading && data.pic_performance.length === 0 ? (
               <Skeleton active paragraph={{ rows: 8 }} title={false} />
             ) : data.pic_performance.length === 0 ? (
               <Empty description="No PIC revenue data" />
             ) : (
-              <Chart option={getRevenueComparisonChartOption(data.pic_performance, isDark)} height={320} />
+              <Chart
+                option={getRevenueComparisonChartOption(
+                  data.pic_performance,
+                  isDark,
+                )}
+                height={320}
+              />
             )}
           </Card>
         </Col>
@@ -595,19 +624,28 @@ function SalesSummaryWidget() {
 
       <Row gutter={[20, 20]}>
         <Col xs={24} xl={8}>
-          <Card bordered={false} style={{ ...getPanelStyle(isDark), height: "100%" }}>
+          <Card
+            bordered={false}
+            style={{ ...getPanelStyle(isDark), height: "100%" }}
+          >
             <SectionHeader title="Quotation Status" color={contentColor} />
             {loading ? (
               <Skeleton active paragraph={{ rows: 8 }} title={false} />
             ) : (
-              <Chart option={getQuotationStatusChartOption(data, isDark)} height={340} />
+              <Chart
+                option={getQuotationStatusChartOption(data, isDark)}
+                height={340}
+              />
             )}
           </Card>
         </Col>
 
         <Col xs={24} xl={16}>
           <Card bordered={false} style={getPanelStyle(isDark)}>
-            <SectionHeader title="PIC Performance Breakdown" color={contentColor} />
+            <SectionHeader
+              title="PIC Performance Breakdown"
+              color={contentColor}
+            />
             {loading && data.pic_performance.length === 0 ? (
               <Skeleton active paragraph={{ rows: 10 }} title={false} />
             ) : data.pic_performance.length === 0 ? (
@@ -617,7 +655,8 @@ function SalesSummaryWidget() {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "minmax(140px, 1.2fr) repeat(4, minmax(90px, 1fr))",
+                    gridTemplateColumns:
+                      "minmax(140px, 1.2fr) repeat(4, minmax(90px, 1fr))",
                     gap: 12,
                     padding: "0 16px 14px",
                     color: mutedColor,
@@ -638,12 +677,15 @@ function SalesSummaryWidget() {
                       key={item.pic}
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "minmax(140px, 1.2fr) repeat(4, minmax(90px, 1fr))",
+                        gridTemplateColumns:
+                          "minmax(140px, 1.2fr) repeat(4, minmax(90px, 1fr))",
                         gap: 12,
                         alignItems: "center",
                         padding: "14px 16px",
                         borderRadius: 16,
-                        background: isDark ? "rgba(39, 39, 42, 0.8)" : "#f8fafc",
+                        background: isDark
+                          ? "rgba(39, 39, 42, 0.8)"
+                          : "#f8fafc",
                       }}
                     >
                       <Space size={12}>
@@ -662,12 +704,22 @@ function SalesSummaryWidget() {
                         >
                           {item.pic.charAt(0).toUpperCase()}
                         </div>
-                        <Text style={{ color: contentColor, fontWeight: 600 }}>{item.pic}</Text>
+                        <Text style={{ color: contentColor, fontWeight: 600 }}>
+                          {item.pic}
+                        </Text>
                       </Space>
-                      <Text style={{ color: "#2f76ff", fontWeight: 600 }}>{item.leads}</Text>
-                      <Text style={{ color: "#18c3c8", fontWeight: 600 }}>{item.proposals}</Text>
-                      <Text style={{ color: "#7c3aed", fontWeight: 600 }}>{formatCurrency(item.quotation_amount)}</Text>
-                      <Text style={{ color: "#52c41a", fontWeight: 600 }}>{formatCurrency(item.purchase_order_amount)}</Text>
+                      <Text style={{ color: "#2f76ff", fontWeight: 600 }}>
+                        {item.leads}
+                      </Text>
+                      <Text style={{ color: "#18c3c8", fontWeight: 600 }}>
+                        {item.proposals}
+                      </Text>
+                      <Text style={{ color: "#7c3aed", fontWeight: 600 }}>
+                        {formatCurrency(item.quotation_amount)}
+                      </Text>
+                      <Text style={{ color: "#52c41a", fontWeight: 600 }}>
+                        {formatCurrency(item.purchase_order_amount)}
+                      </Text>
                     </div>
                   ))}
                 </div>
@@ -683,7 +735,10 @@ function SalesSummaryWidget() {
                 >
                   QUARTER PIC HIGHLIGHTS
                 </Text>
-                <QuarterPicHighlights items={data.quarter_pic_performance} isDark={isDark} />
+                <QuarterPicHighlights
+                  items={data.quarter_pic_performance}
+                  isDark={isDark}
+                />
               </>
             )}
           </Card>
