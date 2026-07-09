@@ -3,6 +3,7 @@ export type DataType = {
   serialNumber: number;
   name: string;
   title: string;
+  priority?: string;
   date: string;
   division: string;
   client: string;
@@ -20,4 +21,5 @@ export type proposalDataType = {
   remark: string;
   proposal_no?: number;
   pic?: string;
+  priority?: string;
 };

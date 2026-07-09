@@ -3,6 +3,7 @@ export type ProposalResponseItem = {
   sl_no?: number | null;
   name?: string | null;
   title?: string | null;
+  priority?: string | null;
   date?: string | null;
   division?: string | null;
   client?: string | null;

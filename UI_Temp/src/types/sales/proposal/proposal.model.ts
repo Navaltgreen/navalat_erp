@@ -3,13 +3,14 @@ export type ProposalModel = {
   serialNumber: number;
   name: string;
   title: string;
+  priority: string;
   date: string;
   division: string;
   client: string;
   email: string;
   phone: string;
   remark: string;
-  proposal_no: number| null;
+  proposal_no: number | null;
   // leadStatus: string;
   // leadSource: string;
   // lastActivity: string | null;
