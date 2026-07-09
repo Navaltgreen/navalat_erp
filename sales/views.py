@@ -266,6 +266,22 @@ class LeadViewSet(BaseSalesViewSet):
                 created_by=request.user.team_member_id,
             )
 
+            lead_work = Works.objects.filter(
+                    project_id=lead.id,
+                    category="Sales",
+                    subcategory="Lead",
+                ).first()
+            
+            StatusLogger.log_status_history(
+                work_id=lead_work.id if lead_work else None,
+                previous_status=previous_pic if previous_pic else None,
+                new_status=lead.pic if lead.pic else None,
+                change_type="Lead",
+                team_member_id=request.user.team_member_id,
+                comments=f"Lead updated. PIC changed (previous: {previous_pic}, new: {lead.pic})",
+            )
+
+
 
         # log_status_history(
         #     work_id=lead.id,
