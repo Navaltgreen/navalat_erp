@@ -3,6 +3,7 @@ export type LeadsModel = {
   serialNumber: number | null;
   name: string | null;
   title: string | null;
+  priority: string | null;
   date: string | null;
   division: string | null;
   client: string | null;

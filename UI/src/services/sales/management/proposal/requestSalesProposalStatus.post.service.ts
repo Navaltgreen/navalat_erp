@@ -3,7 +3,10 @@ import { dataApi } from "../../../../config/axios/dataApi";
 
 type requestProposalBody = {
   is_converted: boolean;
-  proposal_status: "Approved" | "Declined" | "Pending";
+  proposal_status?: "Approved" | "Declined" | "Pending";
+  amount?: number;
+  remarks?: string;
+  pic?: string;
 };
 export async function requestSalesProposalMutate(
   id: number,

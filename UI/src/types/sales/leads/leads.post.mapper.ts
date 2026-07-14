@@ -9,6 +9,7 @@ export function mapCreateLeadResponseToModel(
     serialNumber: response.sl_no,
     name: response.name,
     title: response.title,
+    priority: null,
     date: response.date,
     division: response.division,
     client: response.client,

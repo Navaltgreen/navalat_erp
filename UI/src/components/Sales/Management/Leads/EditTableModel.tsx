@@ -28,25 +28,40 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
   editData,
 }) => {
   const { mutate: updateLeadMutate, isPending } = useUpdateLeadMutation();
- const members = useSalesTeamMembersStore((state) => state.data);
+  const members = useSalesTeamMembersStore((state) => state.data);
   const [form] = Form.useForm();
+
+  const normalizePicToMemberId = (picValue: string | undefined) => {
+    if (!picValue) {
+      return undefined;
+    }
+
+    const matchedMember = members.find(
+      (member) =>
+        String(member.id) === String(picValue) || member.name === picValue,
+    );
+
+    return matchedMember ? String(matchedMember.id) : picValue;
+  };
+
   useEffect(() => {
     if (editData) {
       console.log("editData", editData);
       form.setFieldsValue({
         name: editData.name,
         title: editData.title,
+        priority: editData.priority,
         division: editData.division,
         client: editData.client,
         lead_status: editData.leadStatus,
         lead_source: editData.leadSource,
-        pic: editData.pic,
+        pic: normalizePicToMemberId(editData.pic),
         email: editData.email,
         phone: editData.phone,
         remark: editData.remark, // important mapping
       });
     }
-  }, [editData, form]);
+  }, [editData, form, members]);
   return (
     <>
       <Modal
@@ -64,10 +79,15 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
           onFinish={(values) => {
             if (!editData?.id) return;
 
+            const normalizedPic = normalizePicToMemberId(values.pic);
+
             updateLeadMutate(
               {
                 id: editData.id,
-                payload: values,
+                payload: {
+                  ...values,
+                  pic: normalizedPic,
+                },
               },
               {
                 onSuccess: () => {
@@ -141,6 +161,25 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
               </Form.Item>
             </Col>
 
+            <Col span={12}>
+              <Form.Item
+                label="Priority"
+                name="priority"
+                rules={[{ required: true, message: "Please select priority" }]}
+              >
+                <Select
+                  placeholder="Select priority"
+                  options={[
+                    { label: "Low", value: "Low" },
+                    { label: "Medium", value: "Medium" },
+                    { label: "High", value: "High" },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
             <Col span={12}>
               <Form.Item label="PIC" name="pic" rules={[{ required: true }]}>
                 <Select

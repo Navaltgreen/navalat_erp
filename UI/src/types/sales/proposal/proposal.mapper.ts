@@ -11,6 +11,7 @@ export function mapLeadsResponseToModel(
     serialNumber: proposal.sl_no ?? 0,
     name: proposal.name ?? "",
     title: proposal.title ?? "",
+    priority: proposal.priority ?? "",
     date: proposal.date ?? "",
     division: proposal.division ?? "",
     client: proposal.client ?? "",
