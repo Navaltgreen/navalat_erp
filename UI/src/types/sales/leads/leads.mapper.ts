@@ -6,6 +6,7 @@ export function mapLeadsResponseToModel(lead: LeadsResponseItem): LeadsModel {
     serialNumber: lead?.sl_no,
     name: lead?.name,
     title: lead?.title,
+    priority: lead?.priority,
     date: lead?.date,
     division: lead?.division,
     client: lead?.client,

@@ -6,7 +6,7 @@ import type { ProposalResponse } from "../../../../types/sales/proposal/proposal
 
 export async function getProposalsRecords() {
   const response = await dataApi.get<ProposalResponse>(
-    "/api/v1/sales/proposals/",
+    "/api/v1/sales/proposals/get_proposals/",
   );
 
   return mapLeadsResponseToListModel(response.data);

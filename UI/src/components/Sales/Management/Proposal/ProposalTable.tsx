@@ -1,13 +1,4 @@
-import {
-  Button,
-  Descriptions,
-  Flex,
-  Input,
-  Select,
-  Space,
-  Table,
-  Tag,
-} from "antd";
+import { Button, Flex, Input, Select, Space, Table, Tag } from "antd";
 import { useMemo, useState } from "react";
 import type { TableProps } from "antd";
 import { Edit } from "lucide-react";
@@ -16,6 +7,8 @@ import { useSalesPrefiltersQuery } from "../../../../query/sales/management/pref
 import { useRequestSalesProposalStatus } from "../../../../query/sales/management/proposal/requestforsalespropsal.post.query";
 import { showNotification } from "../utils/showNotification";
 import EditTableModel from "./EditTableModel";
+import CreateQuotationModal from "./CreateQuotationModal";
+import ProposalQuotationsTable from "./ProposalQuotationsTable";
 function ProposalTable() {
   // const { data, loading } = useLeadsQuery();
   const { data, loading } = useLeadsQuery();
@@ -23,6 +16,8 @@ function ProposalTable() {
   const { mutate: requestSalesProposalMutate } =
     useRequestSalesProposalStatus();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCreateQuotationModalOpen, setIsCreateQuotationModalOpen] =
+    useState(false);
   const [expandedRowKeys, setExpandedRowKeys] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [divisionFilter, setDivisionFilter] = useState<string | null>(null);
@@ -37,6 +32,7 @@ function ProposalTable() {
     id: number;
     name: string;
     title: string;
+    priority: string;
     date: string;
     division: string;
     client: string;
@@ -50,6 +46,9 @@ function ProposalTable() {
     proposal_status: string;
   }
   const [selectedLead, setSelectedLead] = useState<DataType | null>(null);
+  const [selectedProposal, setSelectedProposal] = useState<DataType | null>(
+    null,
+  );
 
   const records = useMemo(
     () => (data?.records ?? []) as DataType[],
@@ -172,18 +171,6 @@ function ProposalTable() {
     );
   };
 
-  const renderAttachmentLink = (attachment?: string) => {
-    if (!attachment) {
-      return "-";
-    }
-
-    return (
-      <a href={attachment} target="_blank" rel="noopener noreferrer">
-        Open Attachment
-      </a>
-    );
-  };
-
   const columns: TableProps<DataType>["columns"] = [
     {
       title: "Name",
@@ -200,21 +187,49 @@ function ProposalTable() {
       ),
     },
 
-    {
-      title: "Title",
-      dataIndex: "title",
-      key: "title",
-    },
+    // {
+    //   title: "Title",
+    //   dataIndex: "title",
+    //   key: "title",
+    // },
 
     {
-      title: "Date",
-      dataIndex: "date",
-      key: "date",
+      title: "Phone",
+      dataIndex: "phone",
+      key: "phone",
+    },
+    {
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
     },
     {
       title: "Proposal No.",
       dataIndex: "proposal_no",
       key: "proposal_no",
+    },
+    {
+      title: "Priority",
+      dataIndex: "priority",
+      key: "priority",
+      render: (priority: string) => {
+        const normalized = String(priority ?? "").toLowerCase();
+        const color =
+          normalized === "high"
+            ? "red"
+            : normalized === "medium"
+              ? "gold"
+              : normalized === "low"
+                ? "green"
+                : "default";
+
+        return <Tag color={color}>{priority || "-"}</Tag>;
+      },
+    },
+    {
+      title: "Client",
+      dataIndex: "client",
+      key: "client",
     },
     {
       title: "PIC for Proposal",
@@ -232,11 +247,6 @@ function ProposalTable() {
     //   dataIndex: "division",
     //   key: "division",
     // },
-    {
-      title: "Client",
-      dataIndex: "client",
-      key: "client",
-    },
 
     {
       title: "Proposal Status",
@@ -254,10 +264,9 @@ function ProposalTable() {
           "Proposal Sent": "purple",
           Closed: "success",
         };
-
         return (
           <Tag color={colorMap[status as keyof typeof colorMap] || "default"}>
-            {status}
+            {status === "Approved" ? "Moved to Next Phase" : status}
           </Tag>
         );
       },
@@ -273,13 +282,24 @@ function ProposalTable() {
       width: 100,
       render: (_, record) => (
         <Flex gap={4}>
-          {record.proposal_status == "Pending" ? (
+          {record.proposal_status !== "Approved" ? (
             <Flex gap={4}>
               <Button
                 color="green"
                 variant="solid"
                 size="medium"
-                onClick={() =>
+                onClick={() => {
+                  setSelectedProposal(record);
+                  setIsCreateQuotationModalOpen(true);
+                }}
+              >
+                Create Quotation
+              </Button>
+              <Button
+                color="geekblue"
+                variant="solid"
+                size="medium"
+                onClick={() => {
                   requestSalesProposalMutate(
                     {
                       id: record.id,
@@ -290,17 +310,17 @@ function ProposalTable() {
                       onSuccess: () => {
                         showNotification({
                           type: "success",
-                          message: "Proposal Approved",
-                          description: `${record.name} proposal approved successfully.`,
+                          message: "Moved to Next Phase",
+                          description: `${record.name} moved to the next phase successfully.`,
                         });
                       },
                     },
-                  )
-                }
+                  );
+                }}
               >
-                Approve
+                Move to Next Phase
               </Button>
-              <Button
+              {/* <Button
                 color="red"
                 variant="solid"
                 size="medium"
@@ -324,7 +344,7 @@ function ProposalTable() {
                 }
               >
                 Decline
-              </Button>
+              </Button> */}
             </Flex>
           ) : (
             <></>
@@ -361,6 +381,14 @@ function ProposalTable() {
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         editData={selectedLead}
+      />
+      <CreateQuotationModal
+        open={isCreateQuotationModalOpen}
+        proposal={selectedProposal}
+        onClose={() => {
+          setIsCreateQuotationModalOpen(false);
+          setSelectedProposal(null);
+        }}
       />
       <Space wrap style={{ marginBottom: 12 }}>
         <Input
@@ -425,24 +453,9 @@ function ProposalTable() {
         expandable={{
           expandedRowKeys,
           expandedRowRender: (record) => (
-            <Descriptions size="small" column={2} bordered>
-              <Descriptions.Item label="Phone">
-                {record.phone}
-              </Descriptions.Item>
-              <Descriptions.Item label="Email">
-                {record.email}
-              </Descriptions.Item>
-              <Descriptions.Item label="Division">
-                {record.division}
-              </Descriptions.Item>
-              <Descriptions.Item label="Attachments">
-                {renderAttachmentLink(record.attachments)}
-              </Descriptions.Item>
-
-              <Descriptions.Item label="Remark" span={2}>
-                {record.remark || "-"}
-              </Descriptions.Item>
-            </Descriptions>
+            <Space direction="vertical" size={16} style={{ width: "100%" }}>
+              <ProposalQuotationsTable proposalId={record.id} />
+            </Space>
           ),
           onExpand: (expanded, record) => {
             if (expanded) {
