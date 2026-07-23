@@ -49,25 +49,6 @@ class StatusLogger:
         except Exception:
             return None
 
-    # @staticmethod
-    # def log_status_history(
-    #     work_id,
-    #     previous_status,
-    #     new_status,
-    #     change_type,
-    #     team_member_id=None,
-    #     comments=None,
-    # ):
-    #     StatusHistory.objects.create(
-    #         work_id=work_id,
-    #         previous_status=previous_status or "",
-    #         status=new_status or "",
-    #         change_type=change_type,
-    #         team_member_id=team_member_id,
-    #         comments=comments,
-    #         changed_at=timezone.now(),
-    #     )
-
     @staticmethod
     def log_status_change(change_type, status_field, comments=None, work_id_field=None):
         """
@@ -112,97 +93,6 @@ class StatusLogger:
                 return response
             return wrapper
         return decorator
-
-# def get_team_member_id_from_request(request):
-#     print("user",request.user)           # Django user object
-#     print("auth",request.auth)           # raw token
-#     print(request.META)           # all headers
-#     try:
-#         from auth_core.models import ERPUser  # adjust app name if different
-#         sub = getattr(request.user, "sub", None)
-#         if sub:
-#             erp_user = ERPUser.objects.get(sub=sub)
-#             return erp_user.team_member_id
-#         return None
-#     except Exception:
-#         return None
-# def log_status_history(
-#     work_id,
-#     previous_status,
-#     new_status,
-#     change_type,
-#     team_member_id=None,
-#     comments=None,
-# ):
-#     StatusHistory.objects.create(
-#         work_id=work_id,
-#         previous_status=previous_status or "",
-#         status=new_status or "",
-#         change_type=change_type,
-#         team_member_id=team_member_id,
-#         comments=comments,
-#         changed_at=timezone.now(),
-#     )
-
-
-# def log_status(change_type, new_status, comments=None):
-#     """
-#     Decorator that captures previous status before the action runs,
-#     then logs to StatusHistory after it completes successfully.
-
-#     Usage:
-#         @log_status(change_type="lead", new_status="converted", comments="Lead converted")
-#         def convert(self, request, pk=None):
-#             ...
-#     """
-#     def decorator(func):
-#         @functools.wraps(func)
-#         def wrapper(self, request, *args, **kwargs):
-#             is_create = func.__name__ == "create"
-#             # --- capture state BEFORE action runs ---
-#             obj = self.get_object()
-            
-#             # previous_status = (
-#             #     obj.lead_status
-#             #     if hasattr(obj, "lead_status")
-#             #     else ("converted" if obj.is_converted else "not converted")
-#             # )
-
-#             # work_id = obj.id
-#             if not is_create:
-#                 obj = self.get_object()
-#                 previous_status = (
-#                     obj.lead_status
-#                     if hasattr(obj, "lead_status")
-#                     else ("converted" if obj.is_converted else "not converted")
-#                 )
-#                 work_id = obj.id
-#             # prefer token-based team_member_id, fallback to obj field
-#             team_member_id = (
-#                 get_team_member_id_from_request(request)
-#                 or (obj.team_member_id if not is_create else None)
-#             )
-
-
-#             # --- run the actual action ---
-#             response = func(self, request, *args, **kwargs)
-
-#             # --- log only on success (2xx) ---
-#             if response.status_code < 300:
-#                 log_status_history(
-#                     work_id=work_id,
-#                     previous_status=previous_status,
-#                     new_status=new_status,
-#                     change_type=change_type,
-#                     team_member_id=team_member_id,
-#                     comments=comments,
-#                 )
-
-#             return response
-
-#         return wrapper
-#     return decorator
-
 
 class FileUploadViewSet(APIResponseMixin, viewsets.ViewSet):
     parser_classes = (MultiPartParser, FormParser)

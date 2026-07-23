@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'work_assignments',
     'history',
     'sales', 
+    'project_financials'
 ]
 
 MIDDLEWARE = [

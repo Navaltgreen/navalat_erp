@@ -28,22 +28,13 @@ from rest_framework import status
 
 from core.api_mixins import APIResponseMixin
 from work_assignments.models import WorkAssignment
-from .models import (
-    Lead,
-    Proposal,
-    Quotation,
-    PurchaseOrder
-)
 
-from .serializers import (
-    LeadSerializer,
-    ProposalSerializer,
-    QuotationSerializer,
-    PurchaseOrderSerializer
-)
-from teams.models import Team
 from rest_framework.views import APIView
 from clients.models import Client
+from projects.models import Project
+from project_financials.models import ProjectAmount
+from teams.models import Team
+from works.models import Works
 from rest_framework.viewsets import ViewSet
 from django.utils import timezone
 from django.db import transaction
@@ -165,7 +156,30 @@ class BaseSalesViewSet(APIResponseMixin, viewsets.ModelViewSet):
 class LeadViewSet(BaseSalesViewSet):
     queryset = Lead.objects.filter(is_deleted=False)
     serializer_class = LeadSerializer
-    # @StatusLogger.log_status(change_type="lead", new_status="Approved", comments="Lead converted to Proposal")
+
+    def perform_create(self, serializer):
+        lead = serializer.save()
+
+        work = Works.objects.create(
+            project_id=lead.id,
+            category="Sales",
+            subcategory="Lead",
+            tab="Leads",
+            status="Pending",
+            description="Lead created",
+            team_id=100,
+            created_by=self.request.user.team_member_id,
+        )
+
+        StatusLogger.log_status_history(
+            work_id=work.id,
+            previous_status=None,
+            new_status="Pending",
+            change_type="Lead",
+            team_member_id=self.request.user.team_member_id,
+            comments="Lead created",
+        )
+        
     @action(detail=True, methods=["post"])
     def convert(self, request, pk=None):
         lead = self.get_object()
@@ -274,14 +288,20 @@ class LeadViewSet(BaseSalesViewSet):
                 created_by=request.user.team_member_id,
             )
 
-        # log_status_history(
-        #     work_id=lead.id,
-        #     previous_status=previous_status,
-        #     new_status=lead.lead_status,
-        #     change_type="lead_status",
-        #     team_member_id=lead.team_member_id,
-        #     comments="Lead updated"
-        # )
+            lead_work = Works.objects.filter(
+                    project_id=lead.id,
+                    category="Sales",
+                    subcategory="Lead",
+                ).first()
+            
+            StatusLogger.log_status_history(
+                work_id=lead_work.id if lead_work else None,
+                previous_status=previous_pic if previous_pic else None,
+                new_status=lead.pic if lead.pic else None,
+                change_type="Lead",
+                team_member_id=request.user.team_member_id,
+                comments=f"Lead updated. PIC changed (previous: {previous_pic}, new: {lead.pic})",
+            )
 
         return self.get_response(
             data=LeadSerializer(lead).data,
@@ -309,7 +329,6 @@ class LeadViewSet(BaseSalesViewSet):
             status=status.HTTP_200_OK
         )
 
-    # @StatusLogger.log_status(change_type="lead", new_status="deleted", comments="Lead deleted")
     @action(detail=True, methods=["put"])
     def delete_lead(self, request, pk=None):
 
@@ -359,6 +378,7 @@ class ProposalViewSet(BaseSalesViewSet):
                 "remarks": proposal.remarks,
                 "converted_date": proposal.converted_date,
                 "lead": proposal.lead_id,
+                "priority": proposal.priority,
             })
 
         return Response({
@@ -414,19 +434,53 @@ class ProposalViewSet(BaseSalesViewSet):
                 "message": "Proposal Declined successfully",
             })
 
-        quotation_data = request.data.get('quotation') or {}
-        if request.data.get('is_converted'):
-                    po = PurchaseOrder.objects.filter(Proposal=proposal).first()
-                    proposal.proposal_status='Approved'
-                    proposal.save()
-                    if not po:
-                        po = PurchaseOrder.objects.create(
-                            Proposal=proposal,
-                            remarks=proposal.remarks,
-                            converted_date=timezone.now().date(),
-                            pic=proposal.pic_for_proposal,
-                        )
-        if quotation_data:
+        if request.data.get('is_converted'):   # Purchase order creation 
+            po = PurchaseOrder.objects.filter(Proposal=proposal).first()
+            if not po:
+                last_quotation = proposal.quotations.order_by('-id').first()
+                po = PurchaseOrder.objects.create(
+                    Proposal=proposal,
+                    remarks=proposal.remarks,
+                    converted_date=timezone.now().date(),
+                    pic=proposal.pic_for_proposal,
+                    amount=last_quotation.amount if last_quotation else None
+                )
+                lead = proposal.lead 
+                client = Client.objects.create(
+                    name=lead.client,
+                    email=lead.email,
+                    phone_number=lead.phone
+                )
+                project = Project.objects.create(
+                    name=lead.name,
+                    client=client
+                )
+
+                project_amount = ProjectAmount.objects.create(
+                    total_amount = po.amount,
+                    project = project
+                )
+
+            
+
+                StatusLogger.log_status_history(
+                    work_id=proposal_work.id if proposal_work else None,
+                    previous_status=None,
+                    new_status=proposal.proposal_status,
+                    change_type="Purchase Order",
+                    team_member_id=request.user.team_member_id,
+                    comments="Purchase order created",
+                )
+
+            return Response(
+                {
+                    "message": "Proposal converted to Purchase order:)",
+                    "purchase_id": po.id,
+                },
+                status=status.HTTP_200_OK
+            )
+
+        else:
             quotation = Quotation.objects.create(
                 proposal=proposal,
                 remarks=quotation_data.get('remarks'),

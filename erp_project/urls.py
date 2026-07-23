@@ -41,6 +41,7 @@ urlpatterns = [
     # App URLs
     path('api/core/', include('core.urls')),
     path('api/v1/clients/', include('clients.urls')),
+    path('api/v1/project/', include('project_financials.urls')),
     path('api/v1/projects/', include('projects.urls')),
     path('api/v1/teams/', include('teams.urls')),
     path('api/v1/works/', include('works.urls')),
