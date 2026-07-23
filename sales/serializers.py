@@ -46,8 +46,60 @@ class QuotationSerializer(BaseSerializer):
     #     return team.member if team else None
 
 class PurchaseOrderSerializer(BaseSerializer):
+    name = serializers.SerializerMethodField()
+    title = serializers.SerializerMethodField()
+    client = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
+    phone = serializers.SerializerMethodField()
+    division = serializers.SerializerMethodField()
+
+
     class Meta:
         model = PurchaseOrder
-        fields = "__all__"
+        fields = [
+            'sl_no',
+            'id',
+            'purchase_order_status',
+            'Proposal',
+            'purchase_order_number',
+            'amount',
+            'attachment',
+            'remarks',
+            'converted_date',
+            'pic',
+            'name',
+            'title',
+            'client',
+            'email',
+            'phone',
+            'division',
+        ]
+
+    def get_lead(self, obj):
+        return getattr(obj.Proposal, 'lead', None)
+
+    def get_name(self, obj):
+        lead = self.get_lead(obj)
+        return lead.name if lead else None
+
+    def get_title(self, obj):
+        lead = self.get_lead(obj)
+        return lead.title if lead else None
+
+    def get_client(self, obj):
+        lead = self.get_lead(obj)
+        return lead.client if lead else None
+
+    def get_email(self, obj):
+        lead = self.get_lead(obj)
+        return lead.email if lead else None
+
+    def get_phone(self, obj):
+        lead = self.get_lead(obj)
+        return lead.phone if lead else None
+
+    def get_division(self, obj):
+        lead = self.get_lead(obj)
+        return lead.division if lead else None
 
 

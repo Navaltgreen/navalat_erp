@@ -48,52 +48,25 @@ class StatusLogger:
             return None
         except Exception:
             return None
-
-    @staticmethod
-    def log_status_change(change_type, status_field, comments=None, work_id_field=None):
-        """
-        Decorator for viewset update actions. Logs to StatusHistory
-        ONLY if the given status_field actually changed value.
-
-        Usage:
-            @StatusLogger.log_status_change(change_type="lead", status_field="lead_status")
-            @action(detail=True, methods=["put"])
-            def update_lead(self, request, pk=None):
-                ...
-
-            @StatusLogger.log_status_change(change_type="proposal", status_field="proposal_status")
-            @action(detail=True, methods=["put"])
-            def update_proposal(self, request, pk=None):
-                ...
-        """
-        def decorator(func):
-            @functools.wraps(func)
-            def wrapper(self, request, *args, **kwargs):
-                obj = self.get_object()
-                previous_status = getattr(obj, status_field, None)
-                work_id = getattr(obj, work_id_field, obj.id) if work_id_field else obj.id
-
-                response = func(self, request, *args, **kwargs)
-
-                if response.status_code < 300:
-                    obj.refresh_from_db()   # pull the saved value after func ran
-                    new_status = getattr(obj, status_field, None)
-
-                    if new_status != previous_status:
-                        team_member_id = StatusLogger.get_team_member_id(request) or None
-                        StatusLogger.log_status_history(
-                            work_id=work_id,
-                            previous_status=previous_status,
-                            new_status=new_status,
-                            change_type=change_type,
-                            team_member_id=team_member_id,
-                            comments=comments,
-                        )
-
-                return response
-            return wrapper
-        return decorator
-
+        
+    @staticmethod 
+    def log_status_history(
+        work_id,
+        previous_status,
+        new_status,
+        change_type,
+        team_member_id=None,
+        comments=None,
+    ):
+        StatusHistory.objects.create(
+            work_id=work_id,
+            previous_status=previous_status or "",
+            status=new_status or "",
+            change_type=change_type,
+            team_member_id=team_member_id,
+            comments=comments,
+            changed_at=timezone.now(),
+        )
 class FileUploadViewSet(APIResponseMixin, viewsets.ViewSet):
     parser_classes = (MultiPartParser, FormParser)
 

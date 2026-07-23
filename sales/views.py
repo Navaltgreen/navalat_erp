@@ -11,30 +11,18 @@ from .serializers import (
     QuotationSerializer,
     PurchaseOrderSerializer
 )
-import openpyxl
-import os
 from django.shortcuts import get_object_or_404
-
 from .utils import StatusLogger
-
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import status
-
-from rest_framework import viewsets
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework import status
-
+from rest_framework import viewsets, status
 from core.api_mixins import APIResponseMixin
+from works.models import Works
 from work_assignments.models import WorkAssignment
-
-from rest_framework.views import APIView
+from teams.models import Team
 from clients.models import Client
 from projects.models import Project
 from project_financials.models import ProjectAmount
-from teams.models import Team
-from works.models import Works
 from rest_framework.viewsets import ViewSet
 from django.utils import timezone
 from django.db import transaction
@@ -64,7 +52,6 @@ class BaseSalesViewSet(APIResponseMixin, viewsets.ModelViewSet):
         
         for item in data:
             if "pic" in item:
-                print(team_map.get(item["pic"]))
                 item["pic"] = team_map.get(item["pic"])
 
             # if "pic_for_proposal" in item:
@@ -191,7 +178,7 @@ class LeadViewSet(BaseSalesViewSet):
                 "message": "Lead declined successfully"
             }, status=status.HTTP_200_OK)
 
-        proposal_fields = ['proposal_number', 'pic_for_proposal', 'attachment']
+        proposal_fields = ['proposal_number', 'pic_for_proposal', 'attachment', 'priority']
         proposal_payload = {
             field: request.data[field]
             for field in proposal_fields
@@ -219,6 +206,23 @@ class LeadViewSet(BaseSalesViewSet):
                         team_member_id=proposal.pic_for_proposal,
                         comments=f"Assigned on proposal creation (Proposal #{proposal.id})",
                     )
+                
+                # Fetch the Works entry created by the Proposal's post_save signal
+                proposal_work  = Works.objects.filter(
+                    project_id=proposal.id,
+                    category="Sales",
+                    subcategory="Proposal",
+                ).first()
+
+                # For Status History table -> Proposal created
+                StatusLogger.log_status_history(
+                    work_id=proposal_work.id if proposal_work else None,
+                    previous_status=None,
+                    new_status=lead.lead_status,
+                    change_type="proposal",
+                    team_member_id=request.user.team_member_id,
+                    comments="Proposal created from Lead conversion",
+                )
 
                 lead.is_converted = request.data.get('is_converted')
                 lead.lead_status = request.data.get('lead_status')
@@ -235,7 +239,6 @@ class LeadViewSet(BaseSalesViewSet):
             "proposal_id": proposal.id
         }, status=status.HTTP_201_CREATED)
 
-    @StatusLogger.log_status_change(change_type="lead", status_field="lead_status", comments="Lead updated")
     @action(detail=True, methods=["put"])
     def update_lead(self, request, pk=None):
         lead = self.get_object()
@@ -258,6 +261,7 @@ class LeadViewSet(BaseSalesViewSet):
             "lead_status",
             "lead_source",
             "last_activity",
+            "priority"
         ]
 
         for field in allowed_fields:
@@ -312,15 +316,6 @@ class LeadViewSet(BaseSalesViewSet):
         else:
             comments= "Lead Updated"
 
-        if lead.lead_status != previous_status:
-            log_status_history(
-            work_id=lead.id,
-            previous_status=previous_status,
-            new_status=lead.lead_status,
-            change_type="lead",
-            team_member_id=lead.team_member_id,
-            comments=comments
-        )
         return Response(
             {
                 "message": "Lead updated successfully",
@@ -357,11 +352,24 @@ class ProposalViewSet(BaseSalesViewSet):
 
     @action(detail=False, methods=["get"])
     def get_proposals(self, request):
-        proposals = Proposal.objects.select_related('lead').all()
+
+        team_map = {
+            t.id: t.member
+            for t in Team.objects.filter(team_id=100)
+        }
+
+        proposals = (
+            Proposal.objects
+            .select_related("lead")
+            .all()
+            .order_by("-id")
+        )
 
         data = []
+
         for proposal in proposals:
             lead = proposal.lead
+
             data.append({
                 "id": proposal.id,
                 "sl_no": proposal.id,
@@ -373,7 +381,7 @@ class ProposalViewSet(BaseSalesViewSet):
                 "proposal_status": proposal.proposal_status,
                 "is_converted": proposal.is_converted,
                 "proposal_number": proposal.proposal_number,
-                "pic_for_proposal": proposal.pic_for_proposal,
+                "pic_for_proposal": team_map.get(proposal.pic_for_proposal),
                 "attachment": proposal.attachment,
                 "remarks": proposal.remarks,
                 "converted_date": proposal.converted_date,
@@ -392,7 +400,12 @@ class ProposalViewSet(BaseSalesViewSet):
     def quotations(self, request, pk=None):
         proposal = self.get_object()
 
-        quotations = (
+        team_map = {
+            t.id: t.member
+            for t in Team.objects.filter(team_id=100)
+        }
+
+        quotations = list(
             proposal.quotations.all()
             .order_by("-id")
             .values(
@@ -411,18 +424,18 @@ class ProposalViewSet(BaseSalesViewSet):
             )
         )
 
-        serializer = QuotationSerializer(quotations, many=True)
+        for item in quotations:
+            item["pic"] = team_map.get(item["pic"])
 
         return Response({
             "success": True,
             "message": "Quotations fetched successfully",
             "data": {
-                "quotations": list(quotations)
+                "quotations": quotations
             },
             "meta": {}
         })
 
-    # @StatusLogger.log_status(change_type="proposal", new_status="converted", comments="Proposal converted to Quotation")
     @action(detail=True, methods=["post"])
     def convert(self, request, pk=None):
         proposal = self.get_object()
@@ -432,7 +445,16 @@ class ProposalViewSet(BaseSalesViewSet):
             proposal.save(update_fields=['is_converted','proposal_status'])
             return Response({
                 "message": "Proposal Declined successfully",
-            })
+            })  
+        proposal.is_converted = request.data.get('is_converted')
+        proposal.proposal_status=request.data.get('proposal_status')
+        proposal.save()
+
+        proposal_work = Works.objects.filter(
+                    project_id=proposal.id,
+                    category="Sales",
+                    subcategory="Proposal",
+                ).first()
 
         if request.data.get('is_converted'):   # Purchase order creation 
             po = PurchaseOrder.objects.filter(Proposal=proposal).first()
@@ -461,8 +483,6 @@ class ProposalViewSet(BaseSalesViewSet):
                     project = project
                 )
 
-            
-
                 StatusLogger.log_status_history(
                     work_id=proposal_work.id if proposal_work else None,
                     previous_status=None,
@@ -483,26 +503,24 @@ class ProposalViewSet(BaseSalesViewSet):
         else:
             quotation = Quotation.objects.create(
                 proposal=proposal,
-                remarks=quotation_data.get('remarks'),
-                amount=quotation_data.get('amount'),
-                pic=quotation_data.get('pic'),
-                status='Pending',
+                remarks=request.data.get('remarks'),
+                amount=request.data.get('amount'),
+                pic=request.data.get('pic'),
+                status="Pending",
                 converted_date=timezone.now().date()
             )
-
+            StatusLogger.log_status_history(
+                    work_id=proposal_work.id if proposal_work else None,
+                    previous_status=None,
+                    new_status=proposal.proposal_status,
+                    change_type="Quotation",
+                    team_member_id=request.user.team_member_id,
+                    comments="Quotation created",
+                )
             return Response({
             "message": "Proposal converted successfully",
             "quotation_id": quotation.id
             })
-
-        proposal.save()
-        return Response(
-            {
-                "message": "Proposal updated successfully",
-                "proposal_id": proposal.id,
-            },
-            status=status.HTTP_200_OK
-        )
 
     @action(detail=False, methods=["get"])
     def check_proposal_number(self, request):           # To check proposal_number already exists or not (To ensure new proposal_number is unique)
@@ -521,11 +539,12 @@ class ProposalViewSet(BaseSalesViewSet):
             status=status.HTTP_200_OK,
         )
 
-    @StatusLogger.log_status_change(change_type="proposal", status_field="proposal_status", comments="Proposal updated")
     @action(detail=True, methods=["put"])
     def update_proposal(self, request, pk=None):
         proposal = self.get_object()
         previous_pic = proposal.pic_for_proposal   # For identify pic changes
+        pic_changed = False
+        comments = ""
 
         if proposal.is_converted:
             return Response(
@@ -533,17 +552,12 @@ class ProposalViewSet(BaseSalesViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         allowed_fields = [
-            "name",
-            "title",
-            "date",
-            "division",
-            "client",
-            "email",
-            "phone",
             "remarks",
             "proposal_number",
-            "attachment"
+            "attachment",
+            "priority"
         ]
+        changed_fields = []
 
         for field in allowed_fields:
             if field in request.data:
@@ -552,23 +566,25 @@ class ProposalViewSet(BaseSalesViewSet):
                     field,
                     request.data[field]
                 )
-        pic_changed = False
+                changed_fields.append(field)
+
+        if not changed_fields:
+            return Response(
+                {"message": "No valid fields provided to update"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         if "pic" in request.data:
             team = get_object_or_404(Team, pk=request.data["pic"])
             if team.id != previous_pic:
                 pic_changed = True
             proposal.pic_for_proposal = team.id
-
-        is_converted = request.data.get("is_converted")
-        po = None
+            changed_fields.append("pic")
 
         try:
-            with transaction.atomic():  # To avoid classic partial-write problem
-                if is_converted:
-                    proposal.is_converted = True
-
+            with transaction.atomic():
                 proposal.save()
-
+                comments = f"Proposal updated. Fields changed: {', '.join(changed_fields)}"
                 if pic_changed:
                     WorkAssignment.objects.create(
                         work_id=proposal.id,
@@ -578,18 +594,21 @@ class ProposalViewSet(BaseSalesViewSet):
                         comments=f"PIC changed on Proposal #{proposal.id} (previous: {previous_pic}, new: {proposal.pic_for_proposal})",
                         created_by=request.user.team_member_id,
                     )
+                    comments = f"Proposal updated. PIC changed (previous: {previous_pic}, new: {proposal.pic_for_proposal})"
 
-                if is_converted:
-                    po = PurchaseOrder.objects.filter(Proposal=proposal).first()
-                    proposal.proposal_status='Approved'
-                    proposal.save()
-                    if not po:
-                        po = PurchaseOrder.objects.create(
-                            Proposal=proposal,
-                            remarks=proposal.remarks,
-                            converted_date=timezone.now().date(),
-                            pic=proposal.pic_for_proposal,
-                        )
+                proposal_work = Works.objects.filter(
+                    project_id=proposal.id,
+                    category="Sales",
+                    subcategory="Proposal",
+                ).first()
+                StatusLogger.log_status_history(
+                work_id=proposal_work.id if proposal_work else None,
+                previous_status=previous_pic if pic_changed else None,
+                new_status=proposal.pic_for_proposal if pic_changed else None,
+                change_type="proposal",
+                team_member_id=request.user.team_member_id,
+                comments=comments,
+            )
         except Exception as e:
             return Response(
                 {"message": "Failed to update proposal", "error": str(e)},
@@ -600,75 +619,63 @@ class ProposalViewSet(BaseSalesViewSet):
             {
                 "message": "Proposal updated successfully",
                 "proposal_id": proposal.id,
-                "purchase_order_id": po.id if po else None,
             },
             status=status.HTTP_200_OK
         )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        proposal_id = instance.id
+        self.perform_destroy(instance)
+        proposal_work = Works.objects.filter(
+            project_id=proposal_id,
+            category="Sales",
+            subcategory="Proposal",
+        ).first()
+        StatusLogger.log_status_history(
+            work_id=proposal_work.id if proposal_work else None,
+            previous_status=None,
+            new_status="Deleted",
+            change_type="proposal",
+            team_member_id=request.user.team_member_id,
+            comments=f'Proposal with id {proposal_id} deleted',
+        )
+        return Response(
+            {"message": "Proposal deleted successfully", "proposal_id": proposal_id},
+            status=status.HTTP_200_OK,
+        )
+
+
 class QuotationViewSet(BaseSalesViewSet):
     queryset = Quotation.objects.filter()
     serializer_class = QuotationSerializer
-    # @StatusLogger.log_status(change_type="quotation", new_status="updated", comments="Quotation updated")
     @action(detail=True, methods=["put"])
     def update_quotation(self, request, pk=None):
         quotation = self.get_object()
+        is_convert = request.data.get("is_convert")
+        status_value = request.data.get("status")
 
-        if quotation.is_converted:
-            return Response(
-                {"message": "Converted quotation cannot be modified"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        allowed_fields = [
-            "quotation_number",
-            "status",
-            "amount",
-            "remarks",
-            "attachment",
-            "is_converted"
-        ]
-
-        updated_fields = []
-
-        for field in allowed_fields:
-            if field in request.data:
-                setattr(quotation, field, request.data[field])
-                updated_fields.append(field)
-
-        if "pic" in request.data:
-            team = get_object_or_404(Team, pk=request.data["pic"])
-            quotation.pic = team.id
-            updated_fields.append("pic")
-
-        if not updated_fields:
-            return Response(
-                {"message": "No valid fields provided to update"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        quotation.save(update_fields=updated_fields)
-
+        quotation.is_converted = is_convert
+        quotation.status = status_value
+        quotation.quotation_status = status_value
+        quotation.save(update_fields=["is_converted", "status", "quotation_status"])
         return Response(
             {
                 "message": "Quotation updated successfully",
                 "quotation_id": quotation.id,
-                "quotation_number": quotation.quotation_number,
-                "version": quotation.version,
-                "status": quotation.status,
-                "amount": quotation.amount,
-                "remarks": quotation.remarks,
-                "attachment": quotation.attachment,
-                "pic": quotation.pic,
-                "is_converted": quotation.is_converted
             },
             status=status.HTTP_200_OK,
         )
+
 
 class PurchaseOrderViewSet(BaseSalesViewSet):
     queryset = PurchaseOrder.objects.all()
     serializer_class = PurchaseOrderSerializer
     list_key = "purchase_orders"
 
-    # @StatusLogger.log_status(change_type="purchase_order", new_status="updated", comments="Purchase Order updated")
+    def get_queryset(self):
+        return PurchaseOrder.objects.select_related('Proposal', 'Proposal__lead')
+
     @action(detail=True, methods=["put"])
     def update_purchase(self, request, pk=None):
 

@@ -27,6 +27,11 @@ class Lead(BaseModel):
     pic = models.PositiveIntegerField(blank=True, null=True)
     is_converted = models.BooleanField(default=False)
     remarks = models.TextField(blank=True, null=True)
+    priority = models.CharField(
+        default="Low",
+        blank=True,
+        null=True,
+    )
 
 
     def __str__(self):
@@ -60,8 +65,14 @@ class Proposal(models.Model):
     )
 
     remarks = models.TextField(blank=True, null=True)
+    priority = models.CharField(
+        default="Low",
+        blank=True,
+        null=True,
+    )
     converted_date = models.DateField(blank=True, null=True)
-
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 class Quotation(models.Model):
     quotation_status = models.CharField(max_length=100, blank=True, null=True,default="Pending")
@@ -104,7 +115,8 @@ class Quotation(models.Model):
          blank=True,
         null=True
     )
-
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 class PurchaseOrder(models.Model):
     purchase_order_status = models.CharField(max_length=100, blank=True, null=True,default="Pending")
@@ -135,6 +147,19 @@ class PurchaseOrder(models.Model):
     remarks = models.TextField(blank=True, null=True)
     converted_date = models.DateField(blank=True, null=True)
     pic = models.PositiveIntegerField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        super().save(*args, **kwargs)
+
+        if is_new and self.purchase_order_number is None:
+            self.purchase_order_number = self.id
+            super().save(update_fields=['purchase_order_number'])
+
+    def __str__(self):
+        return f"PO #{self.purchase_order_number or self.id} - {self.Proposal}"
 
     def save(self, *args, **kwargs):
         is_new = self._state.adding

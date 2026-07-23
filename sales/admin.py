@@ -94,6 +94,7 @@ class PurchaseOrderAdmin(admin.ModelAdmin):
         "Proposal",
         "amount",
         "converted_date",
+        "created_at"
     )
     search_fields = (
         "purchase_order_number",
