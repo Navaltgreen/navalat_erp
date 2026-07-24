@@ -36,20 +36,30 @@ class ProposalAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "proposal_number",
-        "name",
+        "get_lead_name",
         "lead",
-        "client",
+        "get_lead_client",
         "pic_for_proposal",
-        "date",
+        "converted_date",
     )
     search_fields = (
         "proposal_number",
-        "name",
-        "client",
-        "email",
+        "lead__name",
+        "lead__client",
+        "lead__client",
     )
-    list_filter = ("date",)
+    list_filter = ("converted_date",)
     autocomplete_fields = ("lead",)
+
+    def get_lead_name(self, obj):
+        return obj.lead.name
+    get_lead_name.short_description = "Name"
+    get_lead_name.admin_order_field = "lead__name"
+
+    def get_lead_client(self, obj):
+        return obj.lead.client
+    get_lead_client.short_description = "Client"
+    get_lead_client.admin_order_field = "lead__client"
 
 
 @admin.register(Quotation)
@@ -61,17 +71,17 @@ class QuotationAdmin(admin.ModelAdmin):
         "version",
         "status",
         "amount",
-        "date",
+        "converted_date",
     )
     search_fields = (
         "quotation_number",
-        "name",
-        "client",
+        # "name",
+        # "client",
     )
     list_filter = (
         "status",
         "version",
-        "date",
+        "converted_date",
     )
     autocomplete_fields = ("proposal",)
 
@@ -81,14 +91,13 @@ class PurchaseOrderAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "purchase_order_number",
-        "quotation",
+        "Proposal",
         "amount",
-        "date",
+        "converted_date",
+        "created_at"
     )
     search_fields = (
         "purchase_order_number",
-        "name",
-        "client",
     )
-    list_filter = ("date",)
-    autocomplete_fields = ("quotation",)
+    list_filter = ("converted_date",)
+    autocomplete_fields = ("Proposal",)
