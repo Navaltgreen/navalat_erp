@@ -81,6 +81,7 @@ KEYCLOAK_EXEMPT_PATHS = [
 ]
 
 REST_FRAMEWORK = {
+    "COERCE_DECIMAL_TO_STRING": False,
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'auth_core.authentication.KeycloakDRFAuthentication',
     ],

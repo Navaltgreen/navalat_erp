@@ -1,34 +1,15 @@
-from history.models import StatusHistory
-from django.utils import timezone
-import os
-import uuid
-import functools
-
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
+from django.utils import timezone
 from core.api_mixins import APIResponseMixin
-
-from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
-from rest_framework import viewsets
-from history.models import StatusHistory
-from django.utils import timezone
+from rest_framework import status, viewsets
 import os
 import uuid
-import functools
 
-from django.conf import settings
-from django.core.files.storage import FileSystemStorage
-from core.api_mixins import APIResponseMixin
-
-from rest_framework import status
-from rest_framework.decorators import action
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.response import Response
-from rest_framework import viewsets
-
+from history.models import StatusHistory
 
 class StatusLogger:
     """

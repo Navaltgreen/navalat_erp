@@ -468,13 +468,15 @@ class ProposalViewSet(BaseSalesViewSet):
                     amount=last_quotation.amount if last_quotation else None
                 )
                 lead = proposal.lead 
-                client = Client.objects.create(
-                    name=lead.client,
+
+                # Avoid duplicate Client creation by matching on email
+                client, _ = Client.objects.get_or_create(
                     email=lead.email,
-                    phone_number=lead.phone
+                    defaults={"name": lead.client, "phone_number": lead.phone}
                 )
+
                 project = Project.objects.create(
-                    name=lead.name,
+                    name=lead.name + proposal.proposal_number,    # To make project name unique
                     client=client
                 )
 

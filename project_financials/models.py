@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.db import models
 from projects.models import Project
 
@@ -5,13 +6,13 @@ class ProjectAmount(models.Model):
     total_amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        null=True,
+        default=Decimal(0),
         blank=True
     )
     received_amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        null=True,
+        default=Decimal(0),
         blank=True
     )
     project = models.ForeignKey(Project,
@@ -29,18 +30,18 @@ class Milestone(models.Model):
     milestone_amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        null=True,
-        blank=True
+        default=Decimal(0),
+        blank=True,
     )
     received_amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        null=True,
-        blank=True
+        default=Decimal(0),
+        blank=True,
     )
     month_year = models.CharField(null=True, blank=True, max_length=50)
     stage_percent = models.CharField(null=True, blank=True, max_length=255)
-    due_date = models.DateTimeField(null=True, blank=True)
+    due_date = models.DateTimeField(null=True, blank=True)    # end_date
     status = models.CharField(null=True, blank=True, max_length=255)
     completion_date =  models.DateTimeField(null=True, blank=True)
     invoice_no = models.CharField(null=True, blank=True, max_length=255)
@@ -49,13 +50,13 @@ class Milestone(models.Model):
     tds_ded = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        null=True,
+        default=Decimal(0),
         blank=True
     )
     pending_dues = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        null=True,
+        default=Decimal(0),
         blank=True
     )
     remarks = models.TextField(
@@ -64,7 +65,7 @@ class Milestone(models.Model):
     )
     pic = models.PositiveIntegerField(blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
-    created_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(null=True, blank=True)   # start_date
     created_by = models.PositiveIntegerField(blank=True, null=True)
     updated_by = models.PositiveIntegerField(blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)   #received date
@@ -74,6 +75,7 @@ class Milestone(models.Model):
     
 
 class PaymentHistory(models.Model):
+    payment_id = models.IntegerField(null=True, blank=True)
     type = models.CharField(null=True, blank=True, max_length=30)  # values can be credit or debit
     amount = models.DecimalField(
         max_digits=12,
@@ -81,6 +83,13 @@ class PaymentHistory(models.Model):
         null=True,
         blank=True
     )
+    # project_amount = models.ForeignKey(ProjectAmount,
+    #         on_delete=models.CASCADE,
+    #         related_name="payment_history"
+    #     )
+    previous_status = models.CharField(null=True, blank=True, max_length=255)
+    current_status = models.CharField(null=True, blank=True, max_length=255)
+    comments = models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(null=True, blank=True)
     created_by = models.PositiveIntegerField(blank=True, null=True)
