@@ -21,6 +21,8 @@ from works.models import Works
 from work_assignments.models import WorkAssignment
 from teams.models import Team
 from clients.models import Client
+from projects.models import Project
+from project_financials.models import ProjectAmount
 from rest_framework.viewsets import ViewSet
 from django.utils import timezone
 from django.db import transaction
@@ -141,6 +143,30 @@ class BaseSalesViewSet(APIResponseMixin, viewsets.ModelViewSet):
 class LeadViewSet(BaseSalesViewSet):
     queryset = Lead.objects.filter(is_deleted=False)
     serializer_class = LeadSerializer
+
+    def perform_create(self, serializer):
+        lead = serializer.save()
+
+        work = Works.objects.create(
+            project_id=lead.id,
+            category="Sales",
+            subcategory="Lead",
+            tab="Leads",
+            status="Pending",
+            description="Lead created",
+            team_id=100,
+            created_by=self.request.user.team_member_id,
+        )
+
+        StatusLogger.log_status_history(
+            work_id=work.id,
+            previous_status=None,
+            new_status="Pending",
+            change_type="Lead",
+            team_member_id=self.request.user.team_member_id,
+            comments="Lead created",
+        )
+        
     @action(detail=True, methods=["post"])
     def convert(self, request, pk=None):
         lead = self.get_object()
@@ -280,17 +306,6 @@ class LeadViewSet(BaseSalesViewSet):
                 team_member_id=request.user.team_member_id,
                 comments=f"Lead updated. PIC changed (previous: {previous_pic}, new: {lead.pic})",
             )
-
-
-
-        # log_status_history(
-        #     work_id=lead.id,
-        #     previous_status=previous_status,
-        #     new_status=lead.lead_status,
-        #     change_type="lead_status",
-        #     team_member_id=lead.team_member_id,
-        #     comments="Lead updated"
-        # )
 
         return self.get_response(
             data=LeadSerializer(lead).data,
@@ -441,7 +456,7 @@ class ProposalViewSet(BaseSalesViewSet):
                     subcategory="Proposal",
                 ).first()
 
-        if request.data.get('is_converted'):
+        if request.data.get('is_converted'):   # Purchase order creation 
             po = PurchaseOrder.objects.filter(Proposal=proposal).first()
             if not po:
                 last_quotation = proposal.quotations.order_by('-id').first()
@@ -451,6 +466,23 @@ class ProposalViewSet(BaseSalesViewSet):
                     converted_date=timezone.now().date(),
                     pic=proposal.pic_for_proposal,
                     amount=last_quotation.amount if last_quotation else None
+                )
+                lead = proposal.lead 
+
+                # Avoid duplicate Client creation by matching on email
+                client, _ = Client.objects.get_or_create(
+                    email=lead.email,
+                    defaults={"name": lead.client, "phone_number": lead.phone}
+                )
+
+                project = Project.objects.create(
+                    name=lead.name + proposal.proposal_number,    # To make project name unique
+                    client=client
+                )
+
+                project_amount = ProjectAmount.objects.create(
+                    total_amount = po.amount,
+                    project = project
                 )
 
                 StatusLogger.log_status_history(

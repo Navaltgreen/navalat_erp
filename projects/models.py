@@ -9,6 +9,7 @@ class Project(models.Model):
     category = models.JSONField(null=True, blank=True, default=list)  # List of categories
     subcategory = models.JSONField(null=True, blank=True, default=list)  # List of subcategories
     tab = models.JSONField(null=True, blank=True, default=list)  # List of tabs
+    is_deleted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.IntegerField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
