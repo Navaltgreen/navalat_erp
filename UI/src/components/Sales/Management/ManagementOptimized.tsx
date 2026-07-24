@@ -13,9 +13,9 @@ function ManagementOptimized() {
     (state) => state.salesPhaseActive,
   );
   return (
-    <Row gutter={[8,8]}>
+    <Row gutter={[8, 8]}>
       <Col span={24}>
-        <Header />
+        <Header salesPhaseActive={salesPhaseActive} />
       </Col>
       <Col span={24}>
         {salesPhaseActive === "lead" && <Leads />}
@@ -25,7 +25,7 @@ function ManagementOptimized() {
         {salesPhaseActive === "quotation_phase_three" && (
           <QuotationPhaseThree />
         )}
-        {salesPhaseActive === "purchase" && <Purchase />}
+        {salesPhaseActive === "deals" && <Purchase />}
       </Col>
     </Row>
   );

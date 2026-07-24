@@ -2,17 +2,12 @@ import type { ComponentType } from "react";
 import {
   Bug,
   SquareArrowUpLeft,
-  ListTodo,BugPlay,
-  // Activity,
-  // BarChart3,
-  // ClipboardList,
+  ListTodo,
+  BugPlay,
   Component,
   LayoutGrid,
-  // LineChart,
-  // Scale,
-  // TrendingUp,
 } from "lucide-react";
-import { DiamondPercent, SquareKanban } from "lucide-react";
+import { DiamondPercent, SquareKanban, ListChecks, Wallet } from "lucide-react";
 
 // Pages
 import DashboardPage from "../pages/DashboardPage";
@@ -24,6 +19,8 @@ import Onboarding from "../components/Oceanix/Onboarding";
 import WorkAdd from "../components/Oceanix/works/WorkAdd";
 import WorkList from "../components/Oceanix/works/WorkList";
 import DeveloperWorkList from "../components/Oceanix/works/DeveloperWorkList";
+import DealsManagement from "../components/Sales/DealsManagement";
+import AccountsPage from "../pages/AccountsPage";
 
 export type RouteConfig = {
   path: string;
@@ -68,17 +65,59 @@ export const appRoutes: RouteConfig[] = [
         path: "dashboard",
         label: "Dashboard",
         icon: Component,
-        roles: ["root", "admin", "superadmin", "sales_author", "sales_editor", "sales_viewer"],
+        roles: [
+          "root",
+          "admin",
+          "superadmin",
+          "sales_author",
+          "sales_editor",
+          "sales_viewer",
+        ],
         component: SalesDashboard,
       },
       {
         path: "management",
         label: "Management",
         icon: SquareKanban,
-        roles: ["root", "admin", "superadmin", "sales_author", "sales_editor", "sales_viewer"],
+        roles: [
+          "root",
+          "admin",
+          "superadmin",
+          "sales_author",
+          "sales_editor",
+          "sales_viewer",
+        ],
         component: SalesManagement,
       },
+      {
+        path: "deals",
+        label: "Deals",
+        icon: ListChecks,
+        roles: [
+          "root",
+          "admin",
+          "superadmin",
+          "sales_author",
+          "sales_editor",
+          "sales_viewer",
+        ],
+        component: DealsManagement,
+      },
     ],
+  },
+  {
+    path: "/accounts",
+    label: "Accounts",
+    icon: Wallet,
+    roles: [
+      "root",
+      "admin",
+      "superadmin",
+      "sales_author",
+      "sales_editor",
+      "sales_viewer",
+    ],
+    component: AccountsPage,
   },
   {
     path: "onboarding",
