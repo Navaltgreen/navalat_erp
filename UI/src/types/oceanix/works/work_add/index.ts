@@ -62,6 +62,7 @@ export interface Project {
   created_by: number | null;
   updated_at: string;
   updated_by: number | null;
+  total_amount?: number;
 }
 
 export interface Client {

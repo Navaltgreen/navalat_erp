@@ -8,9 +8,7 @@ import { useDealsQuery } from "../../../../query/sales/deals/deals.get.query";
 import MilestoneExpandedRow from "./MilestoneExpandedRow";
 import EditProjectModal from "./EditProjectModal";
 
-
 function DealsTable() {
-
   interface DataType {
     id: number;
     name: string;
@@ -19,6 +17,7 @@ function DealsTable() {
       name: string;
     };
     created_at: string;
+    total_amount: number;
   }
   interface MileStoneModalProps {
     id: number;
@@ -42,12 +41,12 @@ function DealsTable() {
   const [isMileStoneModalOpen, setIsMileStoneModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  console.log("Deals query table", data1);
+  // console.log("Deals query table", data1);
   const records = useMemo(
     () => (projectsdata ?? []) as DataType[],
     [projectsdata],
   );
-  console.log("projectdetails", projectsdata);
+  // console.log("projectdetails", projectsdata);
 
   const filteredData = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -75,6 +74,12 @@ function DealsTable() {
       prev.includes(id) ? prev.filter((key) => key !== id) : [...prev, id],
     );
   };
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(value || 0);
 
   const columns: TableProps<DataType>["columns"] = [
     {
@@ -114,8 +119,8 @@ function DealsTable() {
       title: "Total Amount",
       dataIndex: "total_amount",
       key: "total_amount",
-      // render: (value: string) =>
-      //   value ? new Date(value).toLocaleDateString() : "-",
+      render: (value: string | number | null) =>
+        value ? formatCurrency(Number(value)) : "₹0",
     },
     {
       title: "Purchase Order ID",
@@ -194,7 +199,7 @@ function DealsTable() {
           projectId={selectedProject.id}
           onClose={() => {
             setIsMileStoneModalOpen(false);
-             setSelectedProject(null);
+            setSelectedProject(null);
             // setSelectedProposal(null);
           }}
         />
@@ -219,17 +224,24 @@ function DealsTable() {
         expandable={{
           expandedRowKeys,
           expandedRowRender: (record) => (
-            <MilestoneExpandedRow projectId={record.id} />
+            <MilestoneExpandedRow
+              projectId={record.id}
+              totalAmount={record.total_amount}
+            />
           ),
           onExpand: (expanded, record) => {
             if (expanded) {
-              setExpandedRowKeys((prev) =>
-                prev.includes(record.id) ? prev : [...prev, record.id],
-              );
-              return;
+              // setExpandedRowKeys((prev) =>
+              //   prev.includes(record.id) ? prev : [...prev, record.id],
+              // );
+              // return;
+              setExpandedRowKeys([record.id]);
+            } else {
+              // Close all rows
+              setExpandedRowKeys([]);
             }
 
-            setExpandedRowKeys((prev) => prev.filter((id) => id !== record.id));
+            // setExpandedRowKeys((prev) => prev.filter((id) => id !== record.id));
           },
         }}
       />

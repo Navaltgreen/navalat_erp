@@ -16,6 +16,12 @@ function AccountsTable({ projectId }: { projectId: number }) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedMilestone, setSelectedMilestone] =
     useState<SelectedMilestone | null>(null);
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(value || 0);
   const milestoneColumns: TableProps<MileStone>["columns"] = [
     {
       title: "ID",
@@ -24,26 +30,48 @@ function AccountsTable({ projectId }: { projectId: number }) {
     {
       title: "Amount",
       dataIndex: "milestone_amount",
+      key: "milestone_amount",
+      render: (value: string | number) =>
+        value ? formatCurrency(Number(value)) : "₹0",
     },
     {
       title: "Received Amount",
       dataIndex: "received_amount",
       key: "received_amount",
+      render: (value: string | number) =>
+        value ? formatCurrency(Number(value)) : "₹0",
     },
     {
-      title: "Start Date",
-      dataIndex: "created_at",
-      key: "created_at",
-      render: (value: string) =>
-        value ? new Date(value).toLocaleDateString() : "-",
+      title: "Duration",
+      key: "duration",
+      render: (_: unknown, record: MileStone) => {
+        const start = record.created_at
+          ? new Date(record.created_at).toLocaleDateString()
+          : "-";
+        const end = record.due_date
+          ? new Date(record.due_date).toLocaleDateString()
+          : "-";
+        return (
+          <span>
+            {start} → {end}
+          </span>
+        );
+      },
     },
-    {
-      title: "End Date",
-      dataIndex: "due_date",
-      key: "due_date",
-      render: (value: string) =>
-        value ? new Date(value).toLocaleDateString() : "-",
-    },
+    // {
+    //   title: "Start Date",
+    //   dataIndex: "created_at",
+    //   key: "created_at",
+    //   render: (value: string) =>
+    //     value ? new Date(value).toLocaleDateString() : "-",
+    // },
+    // {
+    //   title: "End Date",
+    //   dataIndex: "due_date",
+    //   key: "due_date",
+    //   render: (value: string) =>
+    //     value ? new Date(value).toLocaleDateString() : "-",
+    // },
     {
       title: "Status",
       dataIndex: "status",
@@ -82,10 +110,7 @@ function AccountsTable({ projectId }: { projectId: number }) {
             ></Button>
           </Flex>
         );
-      }
-         
-     
-      
+      },
     },
   ];
   return (
