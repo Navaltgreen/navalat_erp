@@ -3,12 +3,12 @@ import { getMileStones } from "../../../services/sales/deals/requestSalesMilesto
 
 export const milestoneQueryKeys = {
   all: ["milestones"] as const,
-  list: () => [...milestoneQueryKeys.all] as const,
+  list: (projectId: number) => [...milestoneQueryKeys.all, projectId] as const,
 };
 
 export function useMileStonesQuery(projectId: number) {
   const query = useQuery({
-    queryKey: milestoneQueryKeys.list(),
+    queryKey: milestoneQueryKeys.list(projectId),
     // queryKey: ["milestones", projectId],
     queryFn: () => getMileStones(projectId),
     refetchOnMount: false,
