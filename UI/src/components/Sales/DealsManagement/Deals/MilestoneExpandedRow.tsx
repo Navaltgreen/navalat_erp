@@ -4,7 +4,7 @@ import { useMileStonesQuery } from "../../../../query/sales/deals/milestones.get
 import type { MileStone } from "../../../../types/sales/deals/milestones.response";
 import { CheckOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import { useAccountsEditMileStones } from "../../../../query/accounts/milestones.edit.query";
-
+import { showNotification } from "../utils/showNotification";
 const MilestoneExpandedRow = ({
   projectId,
   totalAmount,
@@ -94,11 +94,30 @@ const MilestoneExpandedRow = ({
             size="small"
             icon={<CheckOutlined />}
             onClick={() =>
-              requestEditMileStoneMutate({
-                milestoneId: record.id,
-                project_id: projectId,
-                status: "completed",
-              })
+              requestEditMileStoneMutate(
+                {
+                  milestoneId: record.id,
+                  project_id: projectId,
+                  status: "completed",
+                },
+                {
+                  onSuccess: () => {
+                    showNotification({
+                      type: "success",
+                      message: "Milestone Completed",
+                      description: `Milestone marked Completed`,
+                    });
+                    // onClose();
+                  },
+                  onError: () => {
+                    showNotification({
+                      type: "error",
+                      message: "Failed to complete milestone",
+                      description: `Milestone couldn't completed.`,
+                    });
+                  },
+                },
+              )
             }
           >
             Mark complete

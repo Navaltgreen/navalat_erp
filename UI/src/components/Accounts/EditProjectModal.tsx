@@ -1,6 +1,7 @@
 import { Form, Input, Modal } from "antd";
 import { useEffect } from "react";
 import { useAccountsEditMileStones } from "../../query/accounts/milestones.edit.query";
+import { showNotification } from "../Sales/Management/utils/showNotification";
 
 interface Props {
   open: boolean;
@@ -36,6 +37,19 @@ const EditProjectModal = ({ open, project, onClose }: Props) => {
       },
       {
         onSuccess: () => {
+          showNotification({
+            type: "success",
+            message: "Details updated",
+            description: `Details updated sucessfully.`,
+          });
+          onClose();
+        },
+        onError: () => {
+          showNotification({
+            type: "error",
+            message: "Failed to update Details",
+            description: `Details couldn't updated.`,
+          });
           onClose();
         },
       },
@@ -48,7 +62,14 @@ const EditProjectModal = ({ open, project, onClose }: Props) => {
         <Form.Item
           label="Received Amount"
           name="received_amount"
-          rules={[{ required: true }]}
+          rules={[
+            { required: true },
+            {
+              type: "number",
+              min: 0,
+              message: "Enter number only",
+            },
+          ]}
         >
           <Input />
         </Form.Item>

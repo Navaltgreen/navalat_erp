@@ -1,6 +1,7 @@
 import { Form, Input, Modal } from "antd";
 import { useEffect } from "react";
 import { useSalesEditDeals } from "../../../../query/sales/deals/deals.edit.query";
+import { showNotification } from "../utils/showNotification";
 
 interface Props {
   open: boolean;
@@ -32,7 +33,19 @@ const EditProjectModal = ({ open, project, onClose }: Props) => {
       },
       {
         onSuccess: () => {
+          showNotification({
+            type: "success",
+            message: "Details Updated",
+            description: `Details Updated successfully.`,
+          });
           onClose();
+        },
+        onError: () => {
+          showNotification({
+            type: "error",
+            message: "Failed to update Details",
+            description: `Details couldn't updated`,
+          });
         },
       },
     );
