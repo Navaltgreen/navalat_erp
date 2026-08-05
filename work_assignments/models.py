@@ -3,7 +3,7 @@ from django.db import models
 
 class WorkAssignment(models.Model):
     # issue_id = models.IntegerField()
-    work_id = models.IntegerField(null=True, blank=True)  # ✅ add null=True
+    work_id = models.IntegerField(null=True, blank=True)  # add null=True
     assigned_date = models.DateTimeField()
     updated_date = models.DateTimeField(null=True, blank=True)
     actual_date = models.DateTimeField(null=True, blank=True)

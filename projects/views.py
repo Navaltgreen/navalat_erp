@@ -6,7 +6,8 @@ from .serializers import ProjectSerializer
 
 
 class ProjectViewSet(APIResponseMixin, viewsets.ModelViewSet):
-    queryset = Project.objects.all()
+    # queryset = Project.objects.all()
+    queryset = Project.objects.all().prefetch_related('amounts')
     serializer_class = ProjectSerializer
 
     def list(self, request, *args, **kwargs):
