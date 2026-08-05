@@ -13,6 +13,7 @@ import { useEffect, useMemo } from "react";
 
 import { useRequestSalesMilestoneStatus } from "../../../../query/sales/deals/requestforsalesmilestone.post.query";
 import { useSalesTeamMembersStore } from "../../../../store/sales/team-members.store";
+import { showNotification } from "../utils/showNotification";
 
 export type ProposalQuotationSource = {
   id: number;
@@ -41,6 +42,7 @@ function MileStoneModal({
   onClose,
 }: CreateQuotationModalProps) {
   const [form] = Form.useForm<CreateQuotationFormValues>();
+  // const [submitError, setSubmitError] = useState<string | null>(null);
   const { mutate: requestSalesMileStoneMutate, isPending } =
     useRequestSalesMilestoneStatus();
   const teamMembers = useSalesTeamMembersStore((state) => state.data);
@@ -76,7 +78,19 @@ function MileStoneModal({
       },
       {
         onSuccess: () => {
+          showNotification({
+            type: "success",
+            message: "Milestone Created",
+            description: `Milestone created successfully.`,
+          });
           onClose();
+        },
+        onError: () => {
+          showNotification({
+            type: "error",
+            message: "Failed to create milestone",
+            description: `Milestone couldn't created.`,
+          });
         },
       },
     );
