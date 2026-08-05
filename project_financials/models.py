@@ -42,7 +42,7 @@ class Milestone(models.Model):
     month_year = models.CharField(null=True, blank=True, max_length=50)
     stage_percent = models.CharField(null=True, blank=True, max_length=255)
     due_date = models.DateTimeField(null=True, blank=True)    # end_date
-    status = models.CharField(null=True, blank=True, max_length=255)
+    status = models.CharField(null=True, blank=True, default='Not started', max_length=255)
     completion_date =  models.DateTimeField(null=True, blank=True)
     invoice_no = models.CharField(null=True, blank=True, max_length=255)
     invoice_date =  models.DateTimeField(null=True, blank=True)
@@ -76,7 +76,12 @@ class Milestone(models.Model):
 
 class PaymentHistory(models.Model):
     payment_id = models.IntegerField(null=True, blank=True)
-    type = models.CharField(null=True, blank=True, max_length=30)  # values can be credit or debit
+    milestone = models.ForeignKey(Milestone,
+            null=True, 
+            blank=True,
+            on_delete=models.CASCADE,
+            related_name="payment_history")
+    payment_type = models.CharField(null=True, blank=True, max_length=30)  # values can be credit or debit
     amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -90,10 +95,13 @@ class PaymentHistory(models.Model):
     previous_status = models.CharField(null=True, blank=True, max_length=255)
     current_status = models.CharField(null=True, blank=True, max_length=255)
     comments = models.TextField(null=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    created_at = models.DateTimeField(null=True, blank=True)
+    remarks = models.TextField(
+        null=True,
+        blank=True
+        )
+    updated_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(null=True, blank=True, auto_now_add=True)
     created_by = models.PositiveIntegerField(blank=True, null=True)
     updated_by = models.PositiveIntegerField(blank=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True) 
 
 
