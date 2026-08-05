@@ -8,8 +8,8 @@ export const milestoneQueryKeys = {
 
 export function useMileStonesQuery(projectId: number) {
   const query = useQuery({
-    queryKey: milestoneQueryKeys.list(projectId),
-    // queryKey: ["milestones", projectId],
+    // queryKey: milestoneQueryKeys.list(projectId),
+    queryKey: ["milestones", projectId],
     queryFn: () => getMileStones(projectId),
     refetchOnMount: false,
     staleTime: 1000 * 60 * 5,

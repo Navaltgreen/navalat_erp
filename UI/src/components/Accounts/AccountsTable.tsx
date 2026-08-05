@@ -1,27 +1,42 @@
-import { Button, Flex, Table, type TableProps } from "antd";
+import { Button, Table, type TableProps } from "antd";
 import type { MileStone } from "../../types/sales/deals/milestones.response";
 import { useMileStonesQuery } from "../../query/sales/deals/milestones.get.query";
-import { Edit } from "lucide-react";
+import { Select, Tag } from "antd";
+import { CircleCheck, Wallet } from "lucide-react";
 import { useState } from "react";
 import EditProjectModal from "./EditProjectModal";
+import { useAccountsEditMileStones } from "../../query/accounts/milestones.edit.query";
+import { showNotification } from "../Sales/Management/utils/showNotification";
+import MilestoneExpandedRow from "./MilestoneExpandedRow";
 function AccountsTable({ projectId }: { projectId: number }) {
   type SelectedMilestone = {
+    milestone_amount: number;
     milestoneId: number;
     projectId: number;
     received_amount: number;
+    total_received_amount: number;
   };
 
   const { data: milestoneData, loading: milestoneLoading } =
     useMileStonesQuery(projectId);
+  const { mutate: requestEditMileStoneMutate } = useAccountsEditMileStones();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedMilestone, setSelectedMilestone] =
     useState<SelectedMilestone | null>(null);
+  const [expandedRowKey, setExpandedRowKey] = useState<number | null>(null);
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",
       maximumFractionDigits: 0,
     }).format(value || 0);
+  const STATUS_OPTIONS = [
+    { value: "Not started", color: "default" },
+    { value: "In progress", color: "blue" },
+    { value: "Construction completed", color: "green" },
+    { value: "Invoice generated", color: "gold" },
+    { value: "Completed", color: "success" },
+  ];
   const milestoneColumns: TableProps<MileStone>["columns"] = [
     {
       title: "ID",
@@ -36,8 +51,8 @@ function AccountsTable({ projectId }: { projectId: number }) {
     },
     {
       title: "Received Amount",
-      dataIndex: "received_amount",
-      key: "received_amount",
+      dataIndex: "total_received_amount",
+      key: "total_received_amount",
       render: (value: string | number) =>
         value ? formatCurrency(Number(value)) : "₹0",
     },
@@ -58,25 +73,49 @@ function AccountsTable({ projectId }: { projectId: number }) {
         );
       },
     },
-    // {
-    //   title: "Start Date",
-    //   dataIndex: "created_at",
-    //   key: "created_at",
-    //   render: (value: string) =>
-    //     value ? new Date(value).toLocaleDateString() : "-",
-    // },
-    // {
-    //   title: "End Date",
-    //   dataIndex: "due_date",
-    //   key: "due_date",
-    //   render: (value: string) =>
-    //     value ? new Date(value).toLocaleDateString() : "-",
-    // },
+
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (value: string) => (value ? value : "-"),
+
+      render: (value: string, record: MileStone) => (
+        <Select
+          value={value}
+          style={{ width: "180px" }}
+          // disabled={value === "Completed"}
+          options={STATUS_OPTIONS.map((item) => ({
+            value: item.value,
+            label: <Tag color={item.color}>{item.value}</Tag>,
+          }))}
+          onChange={(newStatus) => {
+            console.log(record.id, newStatus);
+            requestEditMileStoneMutate(
+              {
+                milestoneId: record.id,
+                project_id: projectId,
+                status: newStatus, // Send the selected status
+              },
+              {
+                onSuccess: () => {
+                  showNotification({
+                    type: "success",
+                    message: "Milestone Updated",
+                    description: `Milestone status changed to "${newStatus}".`,
+                  });
+                },
+                onError: () => {
+                  showNotification({
+                    type: "error",
+                    message: "Failed to update milestone",
+                    description: `Couldn't change milestone status to "${newStatus}".`,
+                  });
+                },
+              },
+            );
+          }}
+        />
+      ),
     },
 
     {
@@ -84,31 +123,47 @@ function AccountsTable({ projectId }: { projectId: number }) {
       dataIndex: "remarks",
       render: (value: string) => (value ? value : "-"),
     },
+
     {
-      title: "Edit",
+      title: "Payment",
       dataIndex: "edit",
       key: "edit",
       ellipsis: false,
       fixed: "right",
-      width: 100,
+      width: 140,
       render: (_, record) => {
         const isCompleted = record.status?.toLowerCase() === "completed";
         return (
-          <Flex gap={4}>
-            <Button
-              type="link"
-              icon={<Edit />}
-              disabled={isCompleted}
-              onClick={() => {
-                setSelectedMilestone({
-                  milestoneId: record.id,
-                  projectId,
-                  received_amount: record.received_amount,
-                });
-                setIsEditModalOpen(true);
-              }}
-            ></Button>
-          </Flex>
+          <Button
+            type="default"
+            // shape="round"
+            size="small"
+            icon={
+              isCompleted ? <CircleCheck size={14} /> : <Wallet size={14} />
+            }
+            disabled={isCompleted}
+            onClick={() => {
+              setSelectedMilestone({
+                milestoneId: record.id,
+                projectId,
+                received_amount: record.received_amount,
+                milestone_amount: record.milestone_amount,
+                total_received_amount: record.total_received_amount,
+              });
+              setIsEditModalOpen(true);
+            }}
+            style={
+              isCompleted
+                ? undefined
+                : {
+                    background: "#E6F1FB",
+                    borderColor: "#85B7EB",
+                    color: "#0C447C",
+                  }
+            }
+          >
+            {isCompleted ? "Paid" : "Record payment"}
+          </Button>
         );
       },
     },
@@ -133,6 +188,15 @@ function AccountsTable({ projectId }: { projectId: number }) {
         pagination={false}
         loading={milestoneLoading}
         size="small"
+        expandable={{
+          expandedRowRender: (record) => (
+            <MilestoneExpandedRow record={record} />
+          ),
+          expandedRowKeys: expandedRowKey ? [expandedRowKey] : [],
+          onExpand: (expanded, record) => {
+            setExpandedRowKey(expanded ? record.id : null);
+          },
+        }}
       />
     </>
   );

@@ -1,10 +1,8 @@
-import { Button, Card, Space, Table, Tag } from "antd";
+import { Card, Space, Table, Tag } from "antd";
 import type { TableProps } from "antd";
 import { useMileStonesQuery } from "../../../../query/sales/deals/milestones.get.query";
 import type { MileStone } from "../../../../types/sales/deals/milestones.response";
-import { CheckOutlined, CheckCircleOutlined } from "@ant-design/icons";
-import { useAccountsEditMileStones } from "../../../../query/accounts/milestones.edit.query";
-import { showNotification } from "../utils/showNotification";
+
 const MilestoneExpandedRow = ({
   projectId,
   totalAmount,
@@ -13,7 +11,7 @@ const MilestoneExpandedRow = ({
   totalAmount: number;
 }) => {
   const { data: milestoneData } = useMileStonesQuery(projectId);
-  const { mutate: requestEditMileStoneMutate } = useAccountsEditMileStones();
+
   console.log("milestonedata", milestoneData);
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("en-IN", {
@@ -21,6 +19,13 @@ const MilestoneExpandedRow = ({
       currency: "INR",
       maximumFractionDigits: 0,
     }).format(value || 0);
+  const STATUS_OPTIONS = [
+    { value: "Not started", color: "default" },
+    { value: "In progress", color: "blue" },
+    { value: "Construction completed", color: "green" },
+    { value: "Invoice generated", color: "gold" },
+    { value: "Completed", color: "success" },
+  ];
   const milestoneColumns: TableProps<MileStone>["columns"] = [
     {
       title: "ID",
@@ -40,20 +45,7 @@ const MilestoneExpandedRow = ({
       render: (value: string | number | null) =>
         value ? formatCurrency(Number(value)) : "₹0",
     },
-    // {
-    //   title: "Start Date",
-    //   dataIndex: "created_at",
-    //   key: "created_at",
-    //   render: (value: string) =>
-    //     value ? new Date(value).toLocaleDateString() : "-",
-    // },
-    // {
-    //   title: "End Date",
-    //   dataIndex: "due_date",
-    //   key: "due_date",
-    //   render: (value: string) =>
-    //     value ? new Date(value).toLocaleDateString() : "-",
-    // },
+
     {
       title: "Duration",
       key: "duration",
@@ -76,53 +68,15 @@ const MilestoneExpandedRow = ({
       dataIndex: "remarks",
     },
     {
-      title: "Action",
-      key: "action",
-      render: (_: unknown, record: MileStone) => {
-        const isCompleted = record.status === "completed";
-
-        if (isCompleted) {
-          return (
-            <Tag icon={<CheckCircleOutlined />} color="success">
-              Completed
-            </Tag>
-          );
-        }
-
-        return (
-          <Button
-            size="small"
-            icon={<CheckOutlined />}
-            onClick={() =>
-              requestEditMileStoneMutate(
-                {
-                  milestoneId: record.id,
-                  project_id: projectId,
-                  status: "completed",
-                },
-                {
-                  onSuccess: () => {
-                    showNotification({
-                      type: "success",
-                      message: "Milestone Completed",
-                      description: `Milestone marked Completed`,
-                    });
-                    // onClose();
-                  },
-                  onError: () => {
-                    showNotification({
-                      type: "error",
-                      message: "Failed to complete milestone",
-                      description: `Milestone couldn't completed.`,
-                    });
-                  },
-                },
-              )
-            }
-          >
-            Mark complete
-          </Button>
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status: string) => {
+        const option = STATUS_OPTIONS.find(
+          (item) => item.value.toLowerCase() === status?.toLowerCase(),
         );
+
+        return <Tag color={option?.color ?? "default"}>{status || "-"}</Tag>;
       },
     },
   ];

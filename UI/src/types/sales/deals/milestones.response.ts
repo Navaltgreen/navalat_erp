@@ -1,6 +1,7 @@
 export interface MileStone {
   id: number;
   milestone_amount: number;
+  total_received_amount: number;
   received_amount: number;
   month_year: string | null;
   stage_percent: number | null;

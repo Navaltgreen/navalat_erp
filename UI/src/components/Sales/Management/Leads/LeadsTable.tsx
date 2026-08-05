@@ -356,37 +356,6 @@ function LeadsTable() {
       width: 180,
     },
 
-    // {
-    //   title: "Lead Source",
-    //   // dataIndex: "lead_source",
-    //   dataIndex: "leadSource",
-    //   key: "leadSource",
-    //   // key: "lead_source",
-    // },
-    // {
-    //   title: "Lead Activity",
-    //   dataIndex: "lastActivity",
-    //   key: "lastActivity",
-    //   // dataIndex: "lead_activity",
-    //   // key: "lead_activity",
-    // },
-    // {
-    //   title: "Email",
-    //   dataIndex: "email",
-    //   key: "email",
-    // },
-    // {
-    //   title: "Phone",
-    //   dataIndex: "phone",
-    //   key: "phone",
-    // },
-
-    // {
-    //   title: "Remark",
-    //   dataIndex: "remark",
-    //   key: "remark",
-    //   ellipsis: false,
-    // },
     {
       title: "Lead Status",
       dataIndex: "leadStatus",
@@ -411,22 +380,7 @@ function LeadsTable() {
         );
       },
     },
-    // {
-    //   title: "Request for Proposal",
-    //   // dataIndex: "request_for_proposal",
-    //   dataIndex: "requestForProposal",
-    //   key: "requestForProposal",
-    //   align: "center",
-    //   // key: "request_for_proposal",
-    //   fixed: "right",
-    //   render: (value: boolean | null) => (
-    //     <Tag
-    //       color={value === true ? "green" : value === false ? "red" : "orange"}
-    //     >
-    //       {value === true ? "YES" : value === false ? "NO" : "PENDING"}
-    //     </Tag>
-    //   ),
-    // },
+  
     {
       title: "Action",
       dataIndex: "action",
