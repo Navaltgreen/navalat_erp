@@ -9,7 +9,9 @@ class PaymentHistoryLogger:
         previous_status,
         current_status,
         amount,
-        type,
+        payment_type,
+        milestone,
+        remarks,
         comments=None,
     ):
         PaymentHistory.objects.create(
@@ -17,7 +19,9 @@ class PaymentHistoryLogger:
             previous_status=previous_status or "",
             current_status=current_status or "",
             amount=amount,
-            type=type,
+            payment_type=payment_type,
+            milestone=milestone,
             comments=comments,
+            remarks=remarks,
             updated_at=timezone.now(),
         )

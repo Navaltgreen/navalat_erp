@@ -23,6 +23,7 @@ class BaseModel(models.Model):
 class Lead(BaseModel):
     lead_status = models.CharField(max_length=100, blank=True, null=True,default="Pending")
     lead_source = models.CharField(max_length=100, blank=True, null=True)
+    probability = models.CharField(max_length=100, blank=True, null=True)
     converted_date = models.DateField(blank=True, null=True)
     pic = models.PositiveIntegerField(blank=True, null=True)
     is_converted = models.BooleanField(default=False)
