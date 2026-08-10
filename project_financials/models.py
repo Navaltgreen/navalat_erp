@@ -46,6 +46,8 @@ class Milestone(models.Model):
     completion_date =  models.DateTimeField(null=True, blank=True)
     invoice_no = models.CharField(null=True, blank=True, max_length=255)
     invoice_date =  models.DateTimeField(null=True, blank=True)
+    invoice_to = models.PositiveIntegerField(blank=True, null=True)
+    invoice_by = models.PositiveIntegerField(blank=True, null=True)
     invoice_attachment = models.CharField(null=True, blank=True, max_length=255)
     tds_ded = models.DecimalField(
         max_digits=12,
