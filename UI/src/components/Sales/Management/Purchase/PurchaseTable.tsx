@@ -1,4 +1,14 @@
-import { Button, Descriptions, Flex, Input, Select, Space, Table } from "antd";
+import {
+  Button,
+  Descriptions,
+  Flex,
+  Input,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Typography,
+} from "antd";
 import { useMemo, useState } from "react";
 import type { TableProps } from "antd";
 import { Edit } from "lucide-react";
@@ -22,6 +32,8 @@ function PurchaseTable() {
     purchase_order_no: string;
     pic?: string;
   }
+
+  const { Text } = Typography;
 
   const { data, loading } = useLeadsQuery();
   const { data: prefilters } = useSalesPrefiltersQuery("purchase");
@@ -376,7 +388,44 @@ function PurchaseTable() {
         size="small"
         dataSource={filteredData}
         scroll={{ x: "auto" }}
-        title={() => "Purchase"}
+        // title={() => "Purchase"}
+        title={() => (
+          <Flex justify="space-between" align="center">
+            <Text strong style={{ fontSize: 16 }}>
+              Deals
+            </Text>
+            <Tag
+              color="blue"
+              style={{
+                borderRadius: 20,
+                padding: "2px 12px",
+                fontSize: 13,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              Total Deals
+              <span
+                style={{
+                  background: "#1677ff",
+                  color: "#fff",
+                  borderRadius: "50%",
+                  minWidth: 20,
+                  height: 20,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 12,
+                  padding: "0 6px",
+                }}
+              >
+                {filteredData?.length ?? 0}
+              </span>
+            </Tag>
+          </Flex>
+        )}
         loading={loading}
         expandable={{
           expandedRowKeys,

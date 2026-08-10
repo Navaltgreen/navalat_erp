@@ -144,7 +144,7 @@ function getMetricCards(): MetricCardDefinition[] {
       ],
     },
     {
-      title: "Purchase Orders",
+      title: "Deals",
       icon: <ShoppingCart size={28} />,
       iconBackground: "rgba(132, 204, 22, 0.14)",
       iconColor: "#65a30d",

@@ -5,6 +5,7 @@ import { useSalesDashboardPerformanceQuery } from "../../../query/sales/dashboar
 import { useThemeStore } from "../../../store/theme";
 import type { DashboardModule } from "../../../services/sales/dashboard-performance.service";
 import SalesSummaryWidget from "./SalesSummaryWidget";
+import DashBoardFilters from "./DashBoardFilters";
 
 const { Title, Text } = Typography;
 
@@ -37,7 +38,7 @@ const salesPhaseCharts: SalesPhaseChart[] = [
   },
   {
     key: "purchase",
-    title: "Purchase",
+    title: "Deals",
     accent: ["#16a34a", "#4ade80", "#bbf7d0"],
   },
 ];
@@ -140,6 +141,7 @@ function DashboardOptimized() {
 
   return (
     <div>
+      <DashBoardFilters/>
       <SalesSummaryWidget />
 
       <Row gutter={[16, 16]}>
