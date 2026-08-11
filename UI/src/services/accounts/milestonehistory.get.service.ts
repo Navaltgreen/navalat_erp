@@ -3,9 +3,9 @@ import type { MileStoneHistoryResponse } from "../../types/accounts/milestones.r
 
 export async function getMileStoneHistory(projectId: number) {
   const { data } = await dataApi.get<MileStoneHistoryResponse>(
-    `/api/v1/project/milestones/invoice-summary/`,
+    `/api/v1/project/payment-history`,
     {
-      params: { project_id: projectId },
+      params: { milestone_id: projectId },
     },
   );
 
