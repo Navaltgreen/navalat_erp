@@ -1,25 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
-import { getMileStoneHistory } from "../../services/accounts/milestonehistory.get.service";
+import { getMileStoneHistory } from "../../services/accounts/milestonehistorytotal.get.service";
 
 export const MileStoneHistoryQueryKeys = {
-  all: ["milestone-history-total"] as const,
-  list: (milestoneId: number | null) =>
-    [...MileStoneHistoryQueryKeys.all, { milestoneId }] as const,
+  all: ["milestone-invoice-summary"] as const,
+  list: (projectId: number | null) =>
+    [...MileStoneHistoryQueryKeys.all, { projectId }] as const,
 };
 
-export function useMileStoneHistory(milestoneId: number | null) {
+export function useMileStoneHistory(projectId: number | null) {
   const query = useQuery({
-    // queryKey: MileStoneHistoryQueryKeys.list(milestoneId),
-    queryFn: () => getMileStoneHistory(milestoneId!),
-    queryKey: ["milestone-history", milestoneId],
-    enabled: milestoneId !== null,
+    queryKey: MileStoneHistoryQueryKeys.list(projectId),
+    queryFn: () => getMileStoneHistory(projectId!),
+    enabled: projectId !== null,
     refetchOnMount: false,
     gcTime: 1000 * 60 * 30,
   });
 
   return {
     loading: query.isLoading,
-    data: query.data ?? [],
+    data: query.data?.data ?? null,
     error: query.error ?? null,
     refetch: query.refetch,
   };

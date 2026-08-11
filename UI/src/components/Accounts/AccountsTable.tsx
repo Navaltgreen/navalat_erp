@@ -9,6 +9,7 @@ import { useAccountsEditMileStones } from "../../query/accounts/milestones.edit.
 import { showNotification } from "../Sales/Management/utils/showNotification";
 import MilestoneExpandedRow from "./MilestoneExpandedRow";
 import InvoiceDetails from "./InvoiceDetails";
+import { useMileStoneHistory } from "../../query/accounts/milestones.total.get.query";
 function AccountsTable({ projectId }: { projectId: number }) {
   type SelectedMilestone = {
     milestone_amount: number;
@@ -296,6 +297,11 @@ function AccountsTable({ projectId }: { projectId: number }) {
     },
   ];
 
+  const { data: invoiceSummaryData, loading: invoiceSummaryLoading } =
+    useMileStoneHistory(projectId);
+
+  console.log("invoiceSummaryData", invoiceSummaryData);
+
   return (
     <>
       {selectedMilestone && (
@@ -351,7 +357,66 @@ function AccountsTable({ projectId }: { projectId: number }) {
         />
       </Space>
       <Table
-        title={() => "MileStones"}
+        // title={() => "MileStones"}
+        title={() => (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span style={{ fontWeight: 500, fontSize: 16 }}>MileStones</span>
+
+            <Space size={8}>
+              <div
+                style={{
+                  background: "#FFF1D6",
+                  border: "1px solid #FFD591",
+                  borderRadius: 20,
+                  padding: "4px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span style={{ fontSize: 12, color: "#873800" }}>Invoiced</span>
+                <span
+                  style={{ fontSize: 13, fontWeight: 600, color: "#873800" }}
+                >
+                  {invoiceSummaryLoading
+                    ? "..."
+                    : formatCurrency(
+                        invoiceSummaryData?.total_invoiced_amount ?? 0,
+                      )}
+                </span>
+              </div>
+
+              <div
+                style={{
+                  background: "#F0FBEB",
+                  border: "1px solid #B7EB8F",
+                  borderRadius: 20,
+                  padding: "4px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span style={{ fontSize: 12, color: "#237804" }}>Received</span>
+                <span
+                  style={{ fontSize: 13, fontWeight: 600, color: "#237804" }}
+                >
+                  {invoiceSummaryLoading
+                    ? "..."
+                    : formatCurrency(
+                        invoiceSummaryData?.total_received_amount ?? 0,
+                      )}
+                </span>
+              </div>
+            </Space>
+          </div>
+        )}
         rowKey="id"
         columns={milestoneColumns}
         dataSource={milestoneData}
