@@ -4,6 +4,7 @@ type Payment = {
   created_at: string;
   amount: number;
   comments: string;
+  remarks?: string;
 };
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("en-IN", {
@@ -75,12 +76,12 @@ function MilestoneExpandedRow({ record }: { record: MileStone }) {
 
             <div
               style={{
-                flex: 2,
+                flex: 1,
                 color: "#8c8c8c",
                 fontSize: 15,
               }}
             >
-              {payment?.comments}
+              {payment?.comments}&nbsp;&nbsp;&nbsp;&nbsp;{payment?.remarks}
             </div>
           </div>
 
