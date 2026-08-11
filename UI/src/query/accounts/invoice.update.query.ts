@@ -19,6 +19,7 @@ export function useInvoiceUpdateMileStones() {
       await queryClient.invalidateQueries({
         queryKey: ["milestones", variables.project_id],
       });
+      
 
       // await queryClient.refetchQueries({
       //   queryKey: milestoneQueryKeys.all,
