@@ -5,7 +5,7 @@ from django.db.models import Sum, Case, When, F, Value, DecimalField
 from django.db.models import Sum
 from .utils import PaymentHistoryLogger
 from sales.utils import StatusLogger
-
+from django.shortcuts import get_object_or_404
 
 
 from .models import (
@@ -135,6 +135,101 @@ class MilestoneViewSet(viewsets.ModelViewSet):
             "milestone_id": milestone.id
         }, status=status.HTTP_200_OK)
 
+
+    @action(detail=True, methods=["put"], url_path="invoice")
+    def update_invoice(self, request, pk=None):
+        milestone = get_object_or_404(Milestone, pk=pk, is_deleted=False)
+
+        invoice_fields = [
+            "invoice_no",
+            "invoice_date",
+            "invoice_to",
+            "invoice_by",
+            "invoice_attachment",
+        ]
+
+        invoice_payload = {
+            field: request.data[field]
+            for field in invoice_fields
+            if field in request.data
+        }
+
+        if not invoice_payload:
+            return Response(
+                {"message": "No invoice fields provided to update."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = MilestoneSerializer(
+            milestone, data=invoice_payload, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save(updated_by=request.user.id)
+
+        return Response({
+            "message": "Milestone updated successfully",
+            "milestone_id": milestone.id
+        }, status=status.HTTP_200_OK)
+
+
+    @action(detail=False, methods=["get"], url_path="invoice-summary")
+    def invoice_summary(self, request):
+        project_id = request.query_params.get("project_id")
+
+        if not project_id:
+            return Response(
+                {"message": "project_id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        milestones = Milestone.objects.filter(
+            project_amount_id__project_id=int(project_id),
+            status='Invoice generated',
+            is_deleted=False,
+        )
+
+        if not milestones.exists():
+            return Response(
+                {"message": "No milestones found for this project."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        totals = milestones.aggregate(
+            total_invoiced_amount=Sum("milestone_amount"),
+            total_received_amount=Sum("received_amount"),
+        )
+
+        breakdown = (
+            milestones
+            .values("project_amount_id")
+            .annotate(
+                invoiced_amount=Sum("milestone_amount"),
+                received_amount=Sum("received_amount"),
+            )
+            .order_by("project_amount_id")
+        )
+
+        data = {
+            "project_id": int(project_id),
+            "total_invoiced_amount": float(totals["total_invoiced_amount"] or 0),
+            "total_received_amount": float(totals["total_received_amount"] or 0),
+            "project_amounts": [
+                {
+                    "project_amount_id": item["project_amount_id"],
+                    "invoiced_amount": float(item["invoiced_amount"] or 0),
+                    "received_amount": float(item["received_amount"] or 0),
+                }
+                for item in breakdown
+            ],
+        }
+
+        return Response(
+            {
+                "data": data,
+                "message": "successfull",
+            },
+            status=status.HTTP_200_OK,
+        )
 
     def update(self, request, *args, **kwargs):  # mainly for status updation
         milestone = self.get_object()

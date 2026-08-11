@@ -23,54 +23,67 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="performance")
     def weekly_performance(self, request):
         module = request.query_params.get("module")
+        start_date = request.query_params.get("start_date")
+        end_date = request.query_params.get("end_date")
+
+        date_filter = {}
+        if start_date:
+            date_filter["converted_date__date__gte"] = start_date
+        if end_date:
+            date_filter["converted_date__date__lte"] = end_date
 
         if module == "lead":
             queryset = (
                 Lead.objects
+                .filter(**date_filter)
                 .exclude(pic__isnull=True)
-                .annotate(week=TruncWeek("created_at"))
+                                 .exclude(converted_date__isnull=True)
+
+                .annotate(week=TruncWeek("converted_date"))
                 .values("week", "pic")
                 .annotate(count=Count("id"))
                 .order_by("week", "pic")
             )
 
             data = []
-
             for item in queryset:
                 member = Team.objects.filter(
                     pk=item["pic"]
-                ).values_list(
-                    "member",
-                    flat=True
-                ).first()
+                ).values_list("member", flat=True).first()
 
                 data.append({
                     "label": f"{item['week'].strftime('%Y-W%U')} - {member}",
                     "value": item["count"],
                 })
+
         elif module == "proposal":
             queryset = (
                 Proposal.objects
+                .filter(**date_filter)
                 .exclude(pic_for_proposal__isnull=True)
-                .annotate(week=TruncWeek("created_at"))
+                                 .exclude(converted_date__isnull=True)
+
+                .annotate(week=TruncWeek("converted_date"))
                 .values("week", "pic_for_proposal")
                 .annotate(count=Count("id"))
                 .order_by("week", "pic_for_proposal")
             )
 
             data = [
-                    {
-                        "label": f"{item['week'].strftime('%Y-W%U')} - {Team.objects.filter(pk=item['pic_for_proposal']).values_list('member', flat=True).first()}",
-                        "value": item["count"],
-                    }
-                    for item in queryset
-                ]
+                {
+                    "label": f"{item['week'].strftime('%Y-W%U')} - {Team.objects.filter(pk=item['pic_for_proposal']).values_list('member', flat=True).first()}",
+                    "value": item["count"],
+                }
+                for item in queryset
+            ]
 
         elif module == "quotation":
             queryset = (
                 Quotation.objects
+                .filter(**date_filter)
                 .exclude(pic__isnull=True)
-                .annotate(week=TruncWeek("created_at"))
+                 .exclude(converted_date__isnull=True)
+                .annotate(week=TruncWeek("converted_date"))
                 .values("week", "pic")
                 .annotate(count=Count("id"))
                 .order_by("week", "pic")
@@ -78,9 +91,8 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
 
             data = [
                 {
-                    "label":f"{item["week"].strftime("%Y-W%U")}-{Team.objects.filter(pk=item['pic']).values_list('member', flat=True).first()}",
-                        "value": item["count"],
-
+                    "label": f"{item['week'].strftime('%Y-W%U')} - {Team.objects.filter(pk=item['pic']).values_list('member', flat=True).first()}",
+                    "value": item["count"],
                 }
                 for item in queryset
             ]
@@ -88,22 +100,23 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
         elif module == "purchase":
             queryset = (
                 PurchaseOrder.objects
+                .filter(**date_filter)
                 .exclude(pic__isnull=True)
-                .annotate(quarter=TruncQuarter("created_at"))
+                                 .exclude(converted_date__isnull=True)
+
+                .annotate(quarter=TruncQuarter("converted_date"))
                 .values("quarter", "pic")
                 .annotate(total_amount=Sum("amount"))
                 .order_by("quarter", "pic")
             )
 
-                
             data = [
                 {
-                    "label": f"Q{((item['quarter'].month - 1) // 3) + 1} {item['quarter'].year}-{Team.objects.filter(pk=item['pic']).values_list('member', flat=True).first()}",
-                        "value": float(item["total_amount"] or 0),
+                    "label": f"Q{((item['quarter'].month - 1) // 3) + 1} {item['quarter'].year} - {Team.objects.filter(pk=item['pic']).values_list('member', flat=True).first()}",
+                    "value": float(item["total_amount"] or 0),
                 }
                 for item in queryset
             ]
-
 
         else:
             return Response(
