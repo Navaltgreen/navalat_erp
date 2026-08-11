@@ -419,7 +419,8 @@ function AccountsTable({ projectId }: { projectId: number }) {
         )}
         rowKey="id"
         columns={milestoneColumns}
-        dataSource={milestoneData}
+        // dataSource={milestoneData}
+        dataSource={filteredData}
         pagination={false}
         loading={milestoneLoading}
         size="small"
