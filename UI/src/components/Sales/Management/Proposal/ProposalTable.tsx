@@ -1,4 +1,13 @@
-import { Button, Flex, Input, Select, Space, Table, Tag } from "antd";
+import {
+  Button,
+  Flex,
+  Input,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Typography,
+} from "antd";
 import { useMemo, useState } from "react";
 import type { TableProps } from "antd";
 import { Edit } from "lucide-react";
@@ -10,6 +19,7 @@ import EditTableModel from "./EditTableModel";
 import CreateQuotationModal from "./CreateQuotationModal";
 import ProposalQuotationsTable from "./ProposalQuotationsTable";
 function ProposalTable() {
+  const { Text } = Typography;
   // const { data, loading } = useLeadsQuery();
   const { data, loading } = useLeadsQuery();
   const { data: prefilters } = useSalesPrefiltersQuery("proposal");
@@ -448,7 +458,43 @@ function ProposalTable() {
         size="small"
         dataSource={filteredData}
         scroll={{ x: "auto" }}
-        title={() => "Proposal"}
+        title={() => (
+          <Flex justify="space-between" align="center">
+            <Text strong style={{ fontSize: 16 }}>
+              Proposal
+            </Text>
+            <Tag
+              color="blue"
+              style={{
+                borderRadius: 20,
+                padding: "2px 12px",
+                fontSize: 13,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              Total Proposal
+              <span
+                style={{
+                  background: "#1677ff",
+                  color: "#fff",
+                  borderRadius: "50%",
+                  minWidth: 20,
+                  height: 20,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 12,
+                  padding: "0 6px",
+                }}
+              >
+                {filteredData?.length ?? 0}
+              </span>
+            </Tag>
+          </Flex>
+        )}
         loading={loading}
         expandable={{
           expandedRowKeys,

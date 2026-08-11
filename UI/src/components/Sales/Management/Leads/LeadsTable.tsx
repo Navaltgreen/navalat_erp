@@ -380,7 +380,7 @@ function LeadsTable() {
         );
       },
     },
-  
+
     {
       title: "Action",
       dataIndex: "action",
@@ -404,7 +404,7 @@ function LeadsTable() {
                   setIsApproveModalOpen(true);
                 }}
               >
-                Create Proposal
+                Add Proposal
               </Button>
               {/* <Button
                 color="red"
@@ -479,7 +479,7 @@ function LeadsTable() {
       },
     },
   ];
-
+ 
   return (
     <>
       <EditTableModel
@@ -722,25 +722,49 @@ function LeadsTable() {
         size="small"
         dataSource={filteredData}
         scroll={{ x: "auto" }}
-        title={() => "Leads"}
+        // title={() => "Leads"}
+        title={() => (
+          <Flex justify="space-between" align="center">
+            <Text strong style={{ fontSize: 16 }}>
+              Leads
+            </Text>
+            <Tag
+              color="blue"
+              style={{
+                borderRadius: 20,
+                padding: "2px 12px",
+                fontSize: 13,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              Total Leads
+              <span
+                style={{
+                  background: "#1677ff",
+                  color: "#fff",
+                  borderRadius: "50%",
+                  minWidth: 20,
+                  height: 20,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 12,
+                  padding: "0 6px",
+                }}
+              >
+                {filteredData?.length ?? 0}
+              </span>
+            </Tag>
+          </Flex>
+        )}
         loading={loading}
         expandable={{
           showExpandColumn: true,
           expandedRowKeys,
-          // expandIcon: ({ expanded, onExpand, record }) => (
-          //   <Button
-          //     type="text"
-          //     size="small"
-          //     icon={
-          //       expanded ? (
-          //         <MinusSquareOutlined  />
-          //       ) : (
-          //         <PlusSquareOutlined  />
-          //       )
-          //     }
-          //     onClick={(event) => onExpand(record, event)}
-          //   />
-          // ),
+
           expandedRowRender: (record) => (
             <Descriptions size="small" column={2} bordered>
               <Descriptions.Item label="Phone">

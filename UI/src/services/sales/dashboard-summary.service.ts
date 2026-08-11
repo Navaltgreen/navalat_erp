@@ -7,9 +7,18 @@ import {
 
 const DASHBOARD_SUMMARY_ENDPOINT = "/api/v1/sales/dashboard/summary/";
 
-export async function getSalesDashboardSummary(): Promise<SalesDashboardSummaryData> {
+export async function getSalesDashboardSummary(
+  startDate: string,
+  endDate: string,
+): Promise<SalesDashboardSummaryData> {
   const response = await dataApi.get<SalesDashboardSummaryApiResponse>(
     DASHBOARD_SUMMARY_ENDPOINT,
+    {
+      params: {
+        start_date: startDate,
+        end_date: endDate,
+      },
+    },
   );
 
   return response.data.data ?? emptySalesDashboardSummaryData;
