@@ -182,7 +182,7 @@ function AccountsTable({ projectId }: { projectId: number }) {
       ),
     },
     {
-      title: "Invoice",
+      title: "Invoice No",
       dataIndex: "invoice_no",
       key: "invoice",
       width: 220,
@@ -244,6 +244,16 @@ function AccountsTable({ projectId }: { projectId: number }) {
           </div>
         );
       },
+    },
+    {
+      title: "Invoice To",
+      dataIndex: "invoice_to",
+      render: (value: string) => (value ? value : "-"),
+    },
+    {
+      title: "Invoice By",
+      dataIndex: "invoice_by",
+      render: (value: string) => (value ? value : "-"),
     },
 
     {
