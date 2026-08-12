@@ -58,12 +58,18 @@ function AccountsTable({ projectId }: { projectId: number }) {
     { value: "Completed", color: "success" },
   ];
   const records = useMemo(() => milestoneData ?? [], [milestoneData]);
+  // Filtered Data 
   const filteredData = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
     return records.filter((record) => {
       if (normalizedSearch) {
-        const searchableValues = [record.id, record.remarks, record.invoice_no];
+        const searchableValues = [
+          record.id,
+          record.remarks,
+          record.invoice_no,
+          
+        ];
         const matchesSearch = searchableValues.some((value) =>
           String(value ?? "")
             .toLowerCase()
@@ -182,7 +188,7 @@ function AccountsTable({ projectId }: { projectId: number }) {
       ),
     },
     {
-      title: "Invoice",
+      title: "Invoice No",
       dataIndex: "invoice_no",
       key: "invoice",
       width: 220,
@@ -244,6 +250,16 @@ function AccountsTable({ projectId }: { projectId: number }) {
           </div>
         );
       },
+    },
+    {
+      title: "Invoice To",
+      dataIndex: "invoice_to",
+      render: (value: string) => (value ? value : "-"),
+    },
+    {
+      title: "Invoice By",
+      dataIndex: "invoice_by",
+      render: (value: string) => (value ? value : "-"),
     },
 
     {
@@ -419,7 +435,8 @@ function AccountsTable({ projectId }: { projectId: number }) {
         )}
         rowKey="id"
         columns={milestoneColumns}
-        dataSource={milestoneData}
+        // dataSource={milestoneData}
+        dataSource={filteredData}
         pagination={false}
         loading={milestoneLoading}
         size="small"

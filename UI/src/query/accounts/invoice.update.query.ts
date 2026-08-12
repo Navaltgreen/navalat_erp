@@ -12,10 +12,15 @@ export function useInvoiceUpdateMileStones() {
     mutationFn: (payload: RequestProposalBody) =>
       requestInvoiceUpdateMileStonesMutate(payload),
 
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
       await queryClient.invalidateQueries({
         queryKey: ["invoice-generation"],
       });
+      await queryClient.invalidateQueries({
+        queryKey: ["milestones", variables.project_id],
+      });
+      
+
 
       // await queryClient.refetchQueries({
       //   queryKey: milestoneQueryKeys.all,
