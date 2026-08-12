@@ -28,9 +28,9 @@ class DashboardViewSet(APIResponseMixin, viewsets.ViewSet):
 
         date_filter = {}
         if start_date:
-            date_filter["converted_date__date__gte"] = start_date
+            date_filter["converted_date__gte"] = start_date
         if end_date:
-            date_filter["converted_date__date__lte"] = end_date
+            date_filter["converted_date__lte"] = end_date
 
         if module == "lead":
             queryset = (
