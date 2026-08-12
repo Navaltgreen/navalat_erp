@@ -15,6 +15,11 @@ export default defineConfig({
   plugins: [react(), babel({
     presets: [reactCompilerPreset()]
   })],
+  server: {
+    host: true,
+    port: 8000,
+    allowedHosts: ['.ngrok-free.dev'], // allows any ngrok-free.dev subdomain
+  },
   test: {
     projects: [{
       extends: true,
