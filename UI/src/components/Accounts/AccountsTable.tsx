@@ -58,12 +58,18 @@ function AccountsTable({ projectId }: { projectId: number }) {
     { value: "Completed", color: "success" },
   ];
   const records = useMemo(() => milestoneData ?? [], [milestoneData]);
+  // Filtered Data 
   const filteredData = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
     return records.filter((record) => {
       if (normalizedSearch) {
-        const searchableValues = [record.id, record.remarks, record.invoice_no];
+        const searchableValues = [
+          record.id,
+          record.remarks,
+          record.invoice_no,
+          
+        ];
         const matchesSearch = searchableValues.some((value) =>
           String(value ?? "")
             .toLowerCase()
