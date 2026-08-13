@@ -27,19 +27,26 @@ class MilestoneViewSet(viewsets.ModelViewSet):
 
         project_amount_id = self.request.query_params.get('project_amount_id')
         project_id = self.request.query_params.get('project_id')
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
 
         if project_amount_id:
             queryset = queryset.filter(project_amount_id=project_amount_id)
-        elif project_id:
+        elif project_id and project_id != '99999999':
             queryset = queryset.filter(project_amount_id__project_id=project_id)
 
+        if start_date:
+            queryset = queryset.filter(invoice_date__date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(invoice_date__date__lte=end_date)
+
         queryset = queryset.annotate(
-        total_received_amount=Sum(
-            Case(
-                When(payment_history__payment_type='credit', then=F('payment_history__amount')),
-                When(payment_history__payment_type='debit', then=-F('payment_history__amount')),
-                default=Value(0),
-                output_field=DecimalField(max_digits=12, decimal_places=2),
+            total_received_amount=Sum(
+                Case(
+                    When(payment_history__payment_type='credit', then=F('payment_history__amount')),
+                    When(payment_history__payment_type='debit', then=-F('payment_history__amount')),
+                    default=Value(0),
+                    output_field=DecimalField(max_digits=12, decimal_places=2),
                 )
             )
         )
@@ -182,11 +189,17 @@ class MilestoneViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        valid_statuses = ["Invoice generated", "Partially Received", "Completed"]
+
         milestones = Milestone.objects.filter(
-            project_amount_id__project_id=int(project_id),
-            status='Invoice generated',
+            status__in=valid_statuses,
             is_deleted=False,
         )
+
+        if project_id != '99999999':
+            milestones = milestones.filter(
+                project_amount_id__project_id=int(project_id)
+            )
 
         if not milestones.exists():
             return Response(
@@ -199,28 +212,50 @@ class MilestoneViewSet(viewsets.ModelViewSet):
             total_received_amount=Sum("received_amount"),
         )
 
-        breakdown = (
-            milestones
-            .values("project_amount_id")
-            .annotate(
-                invoiced_amount=Sum("milestone_amount"),
-                received_amount=Sum("received_amount"),
+        if project_id == '99999999':
+            breakdown = (
+                milestones
+                .values("project_amount_id__project_id")
+                .annotate(
+                    invoiced_amount=Sum("milestone_amount"),
+                    received_amount=Sum("received_amount"),
+                )
+                .order_by("project_amount_id__project_id")
             )
-            .order_by("project_amount_id")
-        )
 
-        data = {
-            "project_id": int(project_id),
-            "total_invoiced_amount": float(totals["total_invoiced_amount"] or 0),
-            "total_received_amount": float(totals["total_received_amount"] or 0),
-            "project_amounts": [
+            project_amounts = [
+                {
+                    "project_id": item["project_amount_id__project_id"],
+                    "invoiced_amount": float(item["invoiced_amount"] or 0),
+                    "received_amount": float(item["received_amount"] or 0),
+                }
+                for item in breakdown
+            ]
+        else:
+            breakdown = (
+                milestones
+                .values("project_amount_id")
+                .annotate(
+                    invoiced_amount=Sum("milestone_amount"),
+                    received_amount=Sum("received_amount"),
+                )
+                .order_by("project_amount_id")
+            )
+
+            project_amounts = [
                 {
                     "project_amount_id": item["project_amount_id"],
                     "invoiced_amount": float(item["invoiced_amount"] or 0),
                     "received_amount": float(item["received_amount"] or 0),
                 }
                 for item in breakdown
-            ],
+            ]
+
+        data = {
+            "project_id": project_id,
+            "total_invoiced_amount": float(totals["total_invoiced_amount"] or 0),
+            "total_received_amount": float(totals["total_received_amount"] or 0),
+            "project_amounts": project_amounts,
         }
 
         return Response(
