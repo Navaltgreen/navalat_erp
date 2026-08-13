@@ -3,14 +3,26 @@ import { getMileStones } from "../../../services/sales/deals/requestSalesMilesto
 
 export const milestoneQueryKeys = {
   all: ["milestones"] as const,
-  list: (projectId: number) => [...milestoneQueryKeys.all, projectId] as const,
+  list: (
+    projectId: number,
+    startDate?: string | null,
+    endDate?: string | null,
+  ) => [...milestoneQueryKeys.all, projectId, { startDate, endDate }] as const,
 };
 
-export function useMileStonesQuery(projectId: number) {
+export function useMileStonesQuery(
+  projectId: number,
+  startDate?: string | null,
+  endDate?: string | null,
+) {
   const query = useQuery({
     // queryKey: milestoneQueryKeys.list(projectId),
-    queryKey: ["milestones", projectId],
-    queryFn: () => getMileStones(projectId),
+    queryKey: ["milestones", projectId, startDate, endDate],
+    queryFn: () =>
+      startDate && endDate
+        ? getMileStones(projectId, startDate, endDate)
+        : getMileStones(projectId),
+    // queryFn: () => getMileStones(projectId, startDate, endDate),
     refetchOnMount: false,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,

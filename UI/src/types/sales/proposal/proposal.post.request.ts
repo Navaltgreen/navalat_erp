@@ -5,4 +5,6 @@ export type CreateProposalRequest = {
   // pic: string;
   pic: number;
   priority?: "Low" | "Medium" | "High";
+
+  probability?: number;
 };

@@ -7,6 +7,7 @@ type requestProposalBody = {
   amount?: number;
   remarks?: string;
   pic?: string;
+  attachment?: string;
 };
 export async function requestSalesProposalMutate(
   id: number,

@@ -6,8 +6,8 @@ export type RequestProposalBody = {
 
   status?: string;
   received_amount?: number;
-  remarks?:string;
-  payment_type?:string;
+  remarks?: string;
+  payment_type?: string;
 };
 
 export async function requestAccountsEditMileStonesMutate({

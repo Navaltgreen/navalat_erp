@@ -166,9 +166,10 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
                   attachment: fileUrl,
                   remarks: values.remarks,
                   proposal_number: values.proposal_number ?? null,
-                  // pic: values.pic,
-                  pic: editData.id,
+                  pic: values.pic,
+                  // pic: editData.id,
                   priority: values.priority,
+                  probability: values.probability,
                 },
               },
               {
@@ -220,6 +221,35 @@ const EditTableModel: React.FC<EditTableModelProps> = ({
               style={{ width: "100%" }}
             />
           </Form.Item>
+          <Form.Item
+            label="Probability (%)"
+            name="probability"
+            rules={[
+              {
+                validator: (_, value) => {
+                  if (value === undefined || value === null || value === "") {
+                    return Promise.resolve();
+                  }
+                  if (value < 0 || value > 100) {
+                    return Promise.reject(
+                      new Error("Probability must be between 0 and 100"),
+                    );
+                  }
+                  return Promise.resolve();
+                },
+              },
+            ]}
+          >
+            <InputNumber
+              min={0}
+              max={100}
+              step={0.01}
+              precision={2}
+              placeholder="Enter probability"
+              style={{ width: "100%" }}
+            />
+          </Form.Item>
+
           <Form.Item label="Upload Document" name="attachment">
             <Upload
               beforeUpload={() => false} // prevent auto upload

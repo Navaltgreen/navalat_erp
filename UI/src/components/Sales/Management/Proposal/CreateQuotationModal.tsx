@@ -1,9 +1,20 @@
-import { Button, Form, Input, InputNumber, Modal, Select, Space } from "antd";
+import {
+  Button,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Space,
+  Upload,
+  type UploadFile,
+} from "antd";
 import { useEffect } from "react";
-
+import { UploadOutlined } from "@ant-design/icons";
 import { useRequestSalesProposalStatus } from "../../../../query/sales/management/proposal/requestforsalespropsal.post.query";
 import { useSalesTeamMembersStore } from "../../../../store/sales/team-members.store";
 import { showNotification } from "../utils/showNotification";
+import { useUploadDocumentMutation } from "../../../../query/sales/management/proposal/uploadfile.query";
 
 export type ProposalQuotationSource = {
   id: number;
@@ -20,6 +31,7 @@ type CreateQuotationFormValues = {
   amount: number;
   remarks: string;
   pic: string;
+  attachment?: { fileList?: UploadFile[] };
 };
 
 function CreateQuotationModal({
@@ -27,9 +39,11 @@ function CreateQuotationModal({
   proposal,
   onClose,
 }: CreateQuotationModalProps) {
-  const [form] = Form.useForm<CreateQuotationFormValues>();
+  // const [form] = Form.useForm<CreateQuotationFormValues>();
+  const [form] = Form.useForm();
   const { mutate: requestSalesProposalMutate, isPending } =
     useRequestSalesProposalStatus();
+  const { mutateAsync: uploadDocument } = useUploadDocumentMutation();
   const members = useSalesTeamMembersStore((state) => state.data);
 
   useEffect(() => {
@@ -40,9 +54,19 @@ function CreateQuotationModal({
     form.resetFields();
   }, [form, open, proposal?.id]);
 
-  const handleSubmit = (values: CreateQuotationFormValues) => {
+  const handleSubmit = async (values: CreateQuotationFormValues) => {
     if (!proposal) {
       return;
+    }
+    let fileUrl = "";
+
+    if (values.attachment?.fileList?.length) {
+      const file = values.attachment.fileList[0].originFileObj;
+
+      // fileUrl = await uploadDocument(file);
+        if (file) {
+          fileUrl = (await uploadDocument(file as File)) ?? "";
+        }
     }
 
     requestSalesProposalMutate(
@@ -53,6 +77,7 @@ function CreateQuotationModal({
         amount: values.amount,
         remarks: values.remarks,
         pic: values.pic,
+        attachment: fileUrl,
       },
       {
         onSuccess: () => {
@@ -92,6 +117,14 @@ function CreateQuotationModal({
             style={{ width: "100%" }}
             placeholder="Enter amount"
           />
+        </Form.Item>
+        <Form.Item label="Upload Document" name="attachment">
+          <Upload
+            beforeUpload={() => false} // prevent auto upload
+            maxCount={1}
+          >
+            <Button icon={<UploadOutlined />}>Select File</Button>
+          </Upload>
         </Form.Item>
 
         <Form.Item

@@ -17,6 +17,7 @@ import { useInvoiceUpdateMileStones } from "../../query/accounts/invoice.update.
 import { useUploadDocumentMutation } from "../../query/sales/management/proposal/uploadfile.query";
 
 import { useSalesTeamMembersQuery } from "../../query/sales/team-members.query";
+import { useAccountsEditMileStones } from "../../query/accounts/milestones.edit.query";
 
 const { Dragger } = Upload;
 
@@ -32,6 +33,7 @@ type InvoiceDetailsProps = {
 
 const InvoiceDetails = ({ open, project, onClose }: InvoiceDetailsProps) => {
   const { mutate: requestEditMileStoneMutate } = useInvoiceUpdateMileStones();
+  const { mutate: requestStatusUpdateMutate } = useAccountsEditMileStones();
   const { data: members } = useSalesTeamMembersQuery(200);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [attachmentUrl, setAttachmentUrl] = useState<string>("");
@@ -73,14 +75,14 @@ const InvoiceDetails = ({ open, project, onClose }: InvoiceDetailsProps) => {
   const handleOk = async () => {
     const values = await form.validateFields();
     if (!project) return;
-    if (!attachmentUrl) {
-      showNotification({
-        type: "error",
-        message: "Attachment required",
-        description: "Please upload a valid attachment before submitting.",
-      });
-      return;
-    }
+    // if (!attachmentUrl) {
+    //   showNotification({
+    //     type: "error",
+    //     message: "Attachment required",
+    //     description: "Please upload a valid attachment before submitting.",
+    //   });
+    //   return;
+    // }
 
     requestEditMileStoneMutate(
       {
@@ -106,6 +108,30 @@ const InvoiceDetails = ({ open, project, onClose }: InvoiceDetailsProps) => {
             message: "Details updated",
             description: `Details updated sucessfully.`,
           });
+          // Invoice posted successfully — now update the milestone status
+          requestStatusUpdateMutate(
+            {
+              milestoneId: project.milestoneId,
+              project_id: project.projectId,
+              status: "Invoice generated",
+            },
+            {
+              onSuccess: () => {
+                showNotification({
+                  type: "success",
+                  message: "Milestone Updated",
+                  description: `Milestone status changed to "Invoice generated".`,
+                });
+              },
+              onError: () => {
+                showNotification({
+                  type: "error",
+                  message: "Failed to update milestone",
+                  description: `Couldn't change milestone status to "Invoice generated".`,
+                });
+              },
+            },
+          );
           form.resetFields();
           setFileList([]);
           setAttachmentUrl("");
@@ -227,12 +253,12 @@ const InvoiceDetails = ({ open, project, onClose }: InvoiceDetailsProps) => {
             label="Invoice By"
             name="invoice_by"
             style={{ flex: 1 }}
-            rules={[
-              {
-                required: true,
-                message: "Please select staff",
-              },
-            ]}
+            // rules={[
+            //   {
+            //     required: true,
+            //     message: "Please select staff",
+            //   },
+            // ]}
           >
             <Select
               placeholder="Select Issuer"
@@ -255,12 +281,12 @@ const InvoiceDetails = ({ open, project, onClose }: InvoiceDetailsProps) => {
                     new Error("Please wait for the upload to finish"),
                   );
                 }
-                if (!attachmentUrl) {
-                  return Promise.reject(
-                    new Error("Please upload an attachment"),
-                  );
-                }
-                return Promise.resolve();
+                //       if (!attachmentUrl) {
+                //         return Promise.reject(
+                //           new Error("Please upload an attachment"),
+                //         );
+                //       }
+                //       return Promise.resolve();
               },
             },
           ]}

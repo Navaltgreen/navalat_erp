@@ -5,6 +5,7 @@ export type RequestProposalBody = {
   project_id: number;
 
   status?: string;
+  tds_ded?: number;
   received_amount?: number;
   remarks?: string;
   payment_type?: string;

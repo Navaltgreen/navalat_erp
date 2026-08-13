@@ -10,6 +10,7 @@ type RequestProposalPayload = {
   amount?: number;
   remarks?: string;
   pic?: string;
+  attachment?: string;
 };
 export function useRequestSalesProposalStatus() {
   const queryClient = useQueryClient();

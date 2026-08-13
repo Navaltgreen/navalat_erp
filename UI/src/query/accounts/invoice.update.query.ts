@@ -3,6 +3,7 @@ import {
   requestInvoiceUpdateMileStonesMutate,
   type RequestProposalBody,
 } from "../../services/accounts/requestInvoiceUpdateMilestonesMutate.put.service";
+import { MileStoneHistoryQueryKeys } from "./milestones.total.get.query";
 // import { MileStoneHistoryQueryKeys } from "./milestones.get.query";
 // import { milestoneQueryKeys } from "../sales/deals/milestones.get.query";
 export function useInvoiceUpdateMileStones() {
@@ -19,17 +20,9 @@ export function useInvoiceUpdateMileStones() {
       await queryClient.invalidateQueries({
         queryKey: ["milestones", variables.project_id],
       });
-      
-
-
-      // await queryClient.refetchQueries({
-      //   queryKey: milestoneQueryKeys.all,
-      //   type: "all",
-      // });
-      // await queryClient.refetchQueries({
-      //   queryKey: MileStoneHistoryQueryKeys.all,
-      //   type: "all",
-      // });
+      await queryClient.invalidateQueries({
+        queryKey: MileStoneHistoryQueryKeys.list(variables.project_id),
+      });
     },
   });
 }

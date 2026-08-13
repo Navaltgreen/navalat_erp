@@ -10,7 +10,7 @@ function Accounts() {
   // const selectedTeamId = useGlobalStore((state) => state.selectedTeamId);
   const { setData, setError, resetData } = useSalesTeamMembersStore();
   const { data, error } = useSalesTeamMembersQuery(100);
-  const { data: projectData } = useDealsQuery();
+  const { data: projectData } = useDealsQuery("deals");
   const { projects, selectedProjectId, setProjects, setSelectedProjectId } =
     useAccountsHeaderStore();
 
@@ -34,6 +34,7 @@ function Accounts() {
       <Space wrap style={{ marginBottom: 12 }}>
         <Select
           placeholder="Select Project"
+          style={{ width: "200px" }}
           value={selectedProjectId}
           onChange={setSelectedProjectId}
           options={projects.map((project) => ({
