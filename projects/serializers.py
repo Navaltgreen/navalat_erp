@@ -25,14 +25,33 @@ class ProjectSerializer(serializers.ModelSerializer):
     category = serializers.SerializerMethodField(read_only=True)
     subcategory = serializers.SerializerMethodField(read_only=True)
 
+    total_amount = serializers.SerializerMethodField()
+
     class Meta:
         model = Project
-        # include all model fields you want returned + the write-only inputs
-        fields = (
-            'id', 'name', 'client_id', 'client', 'team_ids', 'tabs', 'categories', 'subcategories',
-            'team_id', 'tab', 'category', 'subcategory',
-            'created_at', 'created_by', 'updated_at', 'updated_by',
-        )
+        fields = [
+            "id",
+            "name",
+            "client_id",
+            "client",
+            "team_ids",
+            "tabs",
+            "categories",
+            "subcategories",
+            "team_id",
+            "tab",
+            "category",
+            "subcategory",
+            "created_at",
+            "created_by",
+            "updated_at",
+            "updated_by",
+            "total_amount",
+        ]
+
+    def get_total_amount(self, obj):
+        amount = obj.amounts.first()
+        return amount.total_amount if amount else None
 
     def get_team_id(self, obj):
         # Project.team_id is a JSONField storing list of team pks

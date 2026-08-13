@@ -6,17 +6,25 @@ from .serializers import ProjectSerializer
 
 
 class ProjectViewSet(APIResponseMixin, viewsets.ModelViewSet):
-    queryset = Project.objects.all()
+    # queryset = Project.objects.all()
+    queryset = Project.objects.all().prefetch_related('amounts')
     serializer_class = ProjectSerializer
 
     def list(self, request, *args, **kwargs):
-        """Get all projects"""
+        module = request.query_params.get("module")
+
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
+        projects = serializer.data
+
+        if module == "deals":
+            projects = [{"id": 99999999, "name": "All"}] + list(projects)
+
         return self.get_response(
-            data={"projects": serializer.data},
+            data={"projects": projects},
             message="Projects fetched successfully"
         )
+
     def create(self, request, *args, **kwargs):
 
         data = request.data.copy()
