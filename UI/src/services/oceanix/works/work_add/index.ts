@@ -5,8 +5,12 @@ import type {
   WorkCreateResponse,
 } from "../../../../types/oceanix/works/work_add";
 
-export const getAllProjects = async (): Promise<ProjectsResponse> => {
-  const { data } = await dataApi.get("/api/v1/projects/");
+export const getAllProjects = async (
+  module?: string,
+): Promise<ProjectsResponse> => {
+  const { data } = await dataApi.get("/api/v1/projects/", {
+    params: module ? { module } : undefined,
+  });
   return data;
 };
 

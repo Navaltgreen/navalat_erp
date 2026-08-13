@@ -1,8 +1,23 @@
-import { Button, Input, Space, Table, Tooltip, type TableProps } from "antd";
+import {
+  Button,
+  DatePicker,
+  Input,
+  Space,
+  Table,
+  Tooltip,
+  type TableProps,
+} from "antd";
 import type { MileStone } from "../../types/sales/deals/milestones.response";
 import { useMileStonesQuery } from "../../query/sales/deals/milestones.get.query";
 import { Select, Tag } from "antd";
-import { CircleCheck, Download, Eye, FileText, Wallet } from "lucide-react";
+import {
+  CalendarRange,
+  CircleCheck,
+  Download,
+  Eye,
+  FileText,
+  Wallet,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import EditProjectModal from "./EditProjectModal";
 import { useAccountsEditMileStones } from "../../query/accounts/milestones.edit.query";
@@ -10,7 +25,9 @@ import { showNotification } from "../Sales/Management/utils/showNotification";
 import MilestoneExpandedRow from "./MilestoneExpandedRow";
 import InvoiceDetails from "./InvoiceDetails";
 import { useMileStoneHistory } from "../../query/accounts/milestones.total.get.query";
+import useAccountsDateFilterStore from "../../store/accounts/dateFilter.store";
 function AccountsTable({ projectId }: { projectId: number }) {
+  const { RangePicker } = DatePicker;
   type SelectedMilestone = {
     milestone_amount: number;
     milestoneId: number;
@@ -18,9 +35,18 @@ function AccountsTable({ projectId }: { projectId: number }) {
     received_amount: number;
     total_received_amount: number;
   };
+  const { startDate, endDate, setDateRange, resetDateRange } =
+    useAccountsDateFilterStore();
+  const startDateStr = startDate ? startDate.format("YYYY-MM-DD") : null;
+  const endDateStr = endDate ? endDate.format("YYYY-MM-DD") : null;
 
-  const { data: milestoneData, loading: milestoneLoading } =
-    useMileStonesQuery(projectId);
+  const { data: milestoneData, loading: milestoneLoading } = useMileStonesQuery(
+    projectId,
+    startDateStr,
+    endDateStr,
+  );
+  console.log("proid", projectId);
+
   const { mutate: requestEditMileStoneMutate } = useAccountsEditMileStones();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
@@ -50,15 +76,25 @@ function AccountsTable({ projectId }: { projectId: number }) {
       year: "numeric",
     });
   };
-  const STATUS_OPTIONS = [
+  const PRE_INVOICE_STATUS_OPTIONS = [
     { value: "Not started", color: "default" },
     { value: "In progress", color: "blue" },
     { value: "Construction completed", color: "green" },
     { value: "Invoice generated", color: "gold" },
+  ];
+
+  const POST_INVOICE_STATUS_OPTIONS = [
+    { value: "Partially Received", color: "cyan" },
     { value: "Completed", color: "success" },
   ];
+  const STATUS_OPTIONS = [
+    ...PRE_INVOICE_STATUS_OPTIONS,
+    ...POST_INVOICE_STATUS_OPTIONS,
+  ];
+
   const records = useMemo(() => milestoneData ?? [], [milestoneData]);
-  // Filtered Data 
+  // Filtered Data
+
   const filteredData = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
@@ -68,8 +104,10 @@ function AccountsTable({ projectId }: { projectId: number }) {
           record.id,
           record.remarks,
           record.invoice_no,
-          
+          formatInvoiceDate(record.invoice_date),
+          // record.invoice_date,
         ];
+        console.log("ttt", searchableValues, record);
         const matchesSearch = searchableValues.some((value) =>
           String(value ?? "")
             .toLowerCase()
@@ -139,53 +177,73 @@ function AccountsTable({ projectId }: { projectId: number }) {
       dataIndex: "status",
       key: "status",
 
-      render: (value: string, record: MileStone) => (
-        <Select
-          value={value}
-          style={{ width: "180px" }}
-          disabled={value === "Invoice generated"}
-          options={STATUS_OPTIONS.map((item) => ({
-            value: item.value,
-            label: <Tag color={item.color}>{item.value}</Tag>,
-          }))}
-          onChange={(newStatus) => {
-            console.log(record.id, newStatus);
-            requestEditMileStoneMutate(
-              {
-                milestoneId: record.id,
-                project_id: projectId,
-                status: newStatus, // Send the selected status
-              },
-              {
-                onSuccess: () => {
-                  showNotification({
-                    type: "success",
-                    message: "Milestone Updated",
-                    description: `Milestone status changed to "${newStatus}".`,
-                  });
-                  if (newStatus === "Invoice generated") {
-                    setInvoiceMilestone({
-                      milestoneId: record.id,
-                      projectId,
-                      received_amount: record.received_amount,
-                      milestone_amount: record.milestone_amount,
-                      total_received_amount: record.total_received_amount,
+      render: (value: string, record: MileStone) => {
+        // Once invoice is generated (or status has moved past it),
+        // restrict choices to only "Partially Received" and "Completed"
+        const isPostInvoice =
+          value === "Invoice generated" ||
+          POST_INVOICE_STATUS_OPTIONS.some((item) => item.value === value);
+        const availableOptions = isPostInvoice
+          ? POST_INVOICE_STATUS_OPTIONS
+          : PRE_INVOICE_STATUS_OPTIONS;
+
+        return (
+          <Select
+            value={value}
+            style={{ width: "180px" }}
+            disabled={projectId === 99999999}
+            options={availableOptions.map((item) => ({
+              value: item.value,
+              label: <Tag color={item.color}>{item.value}</Tag>,
+            }))}
+            onChange={(newStatus) => {
+              console.log(record.id, newStatus);
+
+              // Don't call the update API when moving to "Invoice generated"
+              // Just open the invoice modal instead — status will be updated separately
+              if (newStatus === "Invoice generated") {
+                setInvoiceMilestone({
+                  milestoneId: record.id,
+                  projectId,
+                  received_amount: record.received_amount,
+                  milestone_amount: record.milestone_amount,
+                  total_received_amount: record.total_received_amount,
+                });
+                setIsInvoiceModalOpen(true);
+                return;
+              }
+              requestEditMileStoneMutate(
+                {
+                  milestoneId: record.id,
+                  project_id: projectId,
+                  status: newStatus, // Send the selected status
+                },
+                {
+                  onSuccess: () => {
+                    showNotification({
+                      type: "success",
+                      message: "Milestone Updated",
+                      description: `Milestone status changed to "${newStatus}".`,
                     });
-                    setIsInvoiceModalOpen(true);
-                  }
+                  },
+                  onError: () => {
+                    showNotification({
+                      type: "error",
+                      message: "Failed to update milestone",
+                      description: `Couldn't change milestone status to "${newStatus}".`,
+                    });
+                  },
                 },
-                onError: () => {
-                  showNotification({
-                    type: "error",
-                    message: "Failed to update milestone",
-                    description: `Couldn't change milestone status to "${newStatus}".`,
-                  });
-                },
-              },
-            );
-          }}
-        />
-      ),
+              );
+            }}
+          />
+        );
+      },
+    },
+    {
+      title: "Taxable Amount",
+      dataIndex: "tds_ded",
+      render: (value: number) => (value ? value : "-"),
     },
     {
       title: "Invoice No",
@@ -285,7 +343,7 @@ function AccountsTable({ projectId }: { projectId: number }) {
             icon={
               isCompleted ? <CircleCheck size={14} /> : <Wallet size={14} />
             }
-            disabled={isCompleted}
+            disabled={isCompleted || projectId === 99999999}
             onClick={() => {
               setSelectedMilestone({
                 milestoneId: record.id,
@@ -344,7 +402,7 @@ function AccountsTable({ projectId }: { projectId: number }) {
       <Space wrap style={{ marginBottom: 12 }}>
         <Input
           allowClear
-          placeholder="Search ID, remarks, invoice no"
+          placeholder="Search ID, remarks, invoice no, invoice Date"
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
           style={{ width: 240 }}
@@ -370,6 +428,20 @@ function AccountsTable({ projectId }: { projectId: number }) {
             { label: "Without invoice", value: "without" },
           ]}
           style={{ width: 180 }}
+        />
+        <RangePicker
+          allowClear
+          format="DD MMM YYYY"
+          value={startDate && endDate ? [startDate, endDate] : null}
+          onChange={(values) => {
+            if (values && values[0] && values[1]) {
+              setDateRange(values[0], values[1]);
+            } else {
+              resetDateRange();
+            }
+          }}
+          suffixIcon={<CalendarRange size={14} color="#BFBFBF" />}
+          style={{ borderRadius: 8 }}
         />
       </Space>
       <Table

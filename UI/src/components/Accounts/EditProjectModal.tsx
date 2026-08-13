@@ -48,6 +48,7 @@ const EditProjectModal = ({ open, project, onClose }: Props) => {
         milestoneId: project.milestoneId,
         project_id: project.projectId,
         received_amount: Number(values.received_amount),
+        tds_ded: Number(values.tds_ded),
         remarks: values.remarks,
         payment_type: "credit",
       },
@@ -163,6 +164,31 @@ const EditProjectModal = ({ open, project, onClose }: Props) => {
             </span>
           </div>
         )}
+        <Form.Item
+          label="Taxable amount"
+          name="tds_ded"
+          rules={
+            [
+              // { required: true, message: "Enter the payment amount" },
+              // {
+              //   validator: (_, value) => {
+              //     const num = Number(value);
+              //     if (Number.isNaN(num) || num <= 0) {
+              //       return Promise.reject(new Error("Enter a valid amount"));
+              //     }
+              //     return Promise.resolve();
+              //   },
+              // },
+            ]
+          }
+          validateTrigger="onChange"
+        >
+          <Input
+            placeholder="e.g. 9,000"
+            // status={isOverpaying ? "error" : undefined}
+            // onChange={(e) => setPaymentAmount(Number(e.target.value) || 0)}
+          />
+        </Form.Item>
         <Form.Item
           label="Remarks"
           name="remarks"

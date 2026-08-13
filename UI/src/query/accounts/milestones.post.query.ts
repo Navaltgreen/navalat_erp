@@ -3,7 +3,7 @@ import {
   requestAccountsEditMileStonesMutate,
   type RequestProposalBody,
 } from "../../services/accounts/requestAccountsEditMilestonesMutate.post.service";
-import { MileStoneHistoryQueryKeys } from "./milestones.get.query";
+import { MileStoneHistoryQueryKeys } from "./milestones.total.get.query";
 import { milestoneQueryKeys } from "../sales/deals/milestones.get.query";
 export function useAccountsEditMileStones() {
   const queryClient = useQueryClient();

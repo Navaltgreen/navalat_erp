@@ -4,6 +4,7 @@ import {
   type RequestProposalBody,
 } from "../../services/accounts/requestAccountsEditMilestonesMutate.edit.service";
 import { milestoneQueryKeys } from "../sales/deals/milestones.get.query";
+import { MileStoneHistoryQueryKeys } from "./milestones.total.get.query";
 export function useAccountsEditMileStones() {
   const queryClient = useQueryClient();
 
@@ -11,13 +12,16 @@ export function useAccountsEditMileStones() {
     mutationFn: (payload: RequestProposalBody) =>
       requestAccountsEditMileStonesMutate(payload),
 
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
       await queryClient.invalidateQueries({
         queryKey: ["milestonesedit"],
       });
       await queryClient.refetchQueries({
         queryKey: milestoneQueryKeys.all,
         type: "all",
+      });
+      await queryClient.invalidateQueries({
+        queryKey: MileStoneHistoryQueryKeys.list(variables.project_id),
       });
     },
   });
