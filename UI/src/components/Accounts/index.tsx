@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQueryToStoreSync } from "../../hooks/useQueryToStoreSync";
 import { useDealsQuery } from "../../query/sales/deals/deals.get.query";
 import { useSalesTeamMembersQuery } from "../../query/sales/team-members.query";
@@ -6,6 +6,8 @@ import useAccountsHeaderStore from "../../store/accounts/header.store";
 import { useSalesTeamMembersStore } from "../../store/sales/team-members.store";
 import { Select, Space } from "antd";
 import AccountsTable from "./AccountsTable";
+
+
 function Accounts() {
   // const selectedTeamId = useGlobalStore((state) => state.selectedTeamId);
   const { setData, setError, resetData } = useSalesTeamMembersStore();

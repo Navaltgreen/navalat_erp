@@ -5,6 +5,7 @@ import {
 } from "../../services/accounts/requestAccountsEditMilestonesMutate.post.service";
 import { MileStoneHistoryQueryKeys } from "./milestones.total.get.query";
 import { milestoneQueryKeys } from "../sales/deals/milestones.get.query";
+import { MileStoneHistoryQueryKeys as MileStonePaymentHistoryQueryKeys } from "./milestones.get.query";
 export function useAccountsEditMileStones() {
   const queryClient = useQueryClient();
 
@@ -16,13 +17,17 @@ export function useAccountsEditMileStones() {
       await queryClient.invalidateQueries({
         queryKey: ["milestonesedit"],
       });
+      await queryClient.refetchQueries({
+        queryKey: MileStoneHistoryQueryKeys.all,
+        type: "all",
+      });
 
       await queryClient.refetchQueries({
         queryKey: milestoneQueryKeys.all,
         type: "all",
       });
       await queryClient.refetchQueries({
-        queryKey: MileStoneHistoryQueryKeys.all,
+        queryKey: MileStonePaymentHistoryQueryKeys.all,
         type: "all",
       });
     },
