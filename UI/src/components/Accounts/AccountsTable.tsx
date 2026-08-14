@@ -26,7 +26,11 @@ import MilestoneExpandedRow from "./MilestoneExpandedRow";
 import InvoiceDetails from "./InvoiceDetails";
 import { useMileStoneHistory } from "../../query/accounts/milestones.total.get.query";
 import useAccountsDateFilterStore from "../../store/accounts/dateFilter.store";
+import TabSwitcher from "./TabSwitcher";
+import PaymentHistoryTable from "./PaymentHistoryTable";
+type TabKey = "milestones" | "payment-history";
 function AccountsTable({ projectId }: { projectId: number }) {
+  const [activeTab, setActiveTab] = useState<TabKey>("milestones");
   const { RangePicker } = DatePicker;
   type SelectedMilestone = {
     milestone_amount: number;
@@ -398,130 +402,155 @@ function AccountsTable({ projectId }: { projectId: number }) {
           }}
         />
       )}
-      <br></br>
-      <Space wrap style={{ marginBottom: 12 }}>
-        <Input
-          allowClear
-          placeholder="Search ID, remarks, invoice no, invoice Date"
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
-          style={{ width: 240 }}
-        />
-        <Select
-          allowClear
-          placeholder="Status"
-          value={statusFilter ?? undefined}
-          onChange={(value) => setStatusFilter(value ?? null)}
-          options={STATUS_OPTIONS.map((item) => ({
-            label: item.value,
-            value: item.value,
-          }))}
-          style={{ width: 200 }}
-        />
-        <Select
-          allowClear
-          placeholder="Invoice"
-          value={invoiceFilter ?? undefined}
-          onChange={(value) => setInvoiceFilter(value ?? null)}
-          options={[
-            { label: "With invoice", value: "with" },
-            { label: "Without invoice", value: "without" },
-          ]}
-          style={{ width: 180 }}
-        />
-        <RangePicker
-          allowClear
-          format="DD MMM YYYY"
-          value={startDate && endDate ? [startDate, endDate] : null}
-          onChange={(values) => {
-            if (values && values[0] && values[1]) {
-              setDateRange(values[0], values[1]);
-            } else {
-              resetDateRange();
-            }
-          }}
-          suffixIcon={<CalendarRange size={14} color="#BFBFBF" />}
-          style={{ borderRadius: 8 }}
-        />
-      </Space>
-      <Table
-        // title={() => "MileStones"}
-        title={() => (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
+
+      <div style={{ marginBottom: "8px" }}>
+        <TabSwitcher activeTab={activeTab} onChange={setActiveTab} />
+      </div>
+
+      {activeTab === "milestones" && (
+        <>
+          <Space wrap style={{ marginBottom: 12 }}>
+            <Input
+              allowClear
+              placeholder="Search ID, remarks, invoice no, invoice Date"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              style={{ width: 240 }}
+            />
+            <Select
+              allowClear
+              placeholder="Status"
+              value={statusFilter ?? undefined}
+              onChange={(value) => setStatusFilter(value ?? null)}
+              options={STATUS_OPTIONS.map((item) => ({
+                label: item.value,
+                value: item.value,
+              }))}
+              style={{ width: 200 }}
+            />
+            <Select
+              allowClear
+              placeholder="Invoice"
+              value={invoiceFilter ?? undefined}
+              onChange={(value) => setInvoiceFilter(value ?? null)}
+              options={[
+                { label: "With invoice", value: "with" },
+                { label: "Without invoice", value: "without" },
+              ]}
+              style={{ width: 180 }}
+            />
+            <RangePicker
+              allowClear
+              format="DD MMM YYYY"
+              value={startDate && endDate ? [startDate, endDate] : null}
+              onChange={(values) => {
+                if (values && values[0] && values[1]) {
+                  setDateRange(values[0], values[1]);
+                } else {
+                  resetDateRange();
+                }
+              }}
+              suffixIcon={<CalendarRange size={14} color="#BFBFBF" />}
+              style={{ borderRadius: 8 }}
+            />
+          </Space>
+          <Table
+            // title={() => "MileStones"}
+            title={() => (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <span style={{ fontWeight: 500, fontSize: 16 }}>
+                  MileStones
+                </span>
+
+                <Space size={8}>
+                  <div
+                    style={{
+                      background: "#FFF1D6",
+                      border: "1px solid #FFD591",
+                      borderRadius: 20,
+                      padding: "4px 14px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <span style={{ fontSize: 12, color: "#873800" }}>
+                      Invoiced
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: "#873800",
+                      }}
+                    >
+                      {invoiceSummaryLoading
+                        ? "..."
+                        : formatCurrency(
+                            invoiceSummaryData?.total_invoiced_amount ?? 0,
+                          )}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "#F0FBEB",
+                      border: "1px solid #B7EB8F",
+                      borderRadius: 20,
+                      padding: "4px 14px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <span style={{ fontSize: 12, color: "#237804" }}>
+                      Received
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: "#237804",
+                      }}
+                    >
+                      {invoiceSummaryLoading
+                        ? "..."
+                        : formatCurrency(
+                            invoiceSummaryData?.total_received_amount ?? 0,
+                          )}
+                    </span>
+                  </div>
+                </Space>
+              </div>
+            )}
+            rowKey="id"
+            columns={milestoneColumns}
+            // dataSource={milestoneData}
+            dataSource={filteredData}
+            pagination={false}
+            loading={milestoneLoading}
+            size="small"
+            expandable={{
+              expandedRowRender: (record) => (
+                <MilestoneExpandedRow record={record} />
+              ),
+              expandedRowKeys: expandedRowKey ? [expandedRowKey] : [],
+              onExpand: (expanded, record) => {
+                setExpandedRowKey(expanded ? record.id : null);
+              },
             }}
-          >
-            <span style={{ fontWeight: 500, fontSize: 16 }}>MileStones</span>
-
-            <Space size={8}>
-              <div
-                style={{
-                  background: "#FFF1D6",
-                  border: "1px solid #FFD591",
-                  borderRadius: 20,
-                  padding: "4px 14px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <span style={{ fontSize: 12, color: "#873800" }}>Invoiced</span>
-                <span
-                  style={{ fontSize: 13, fontWeight: 600, color: "#873800" }}
-                >
-                  {invoiceSummaryLoading
-                    ? "..."
-                    : formatCurrency(
-                        invoiceSummaryData?.total_invoiced_amount ?? 0,
-                      )}
-                </span>
-              </div>
-
-              <div
-                style={{
-                  background: "#F0FBEB",
-                  border: "1px solid #B7EB8F",
-                  borderRadius: 20,
-                  padding: "4px 14px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <span style={{ fontSize: 12, color: "#237804" }}>Received</span>
-                <span
-                  style={{ fontSize: 13, fontWeight: 600, color: "#237804" }}
-                >
-                  {invoiceSummaryLoading
-                    ? "..."
-                    : formatCurrency(
-                        invoiceSummaryData?.total_received_amount ?? 0,
-                      )}
-                </span>
-              </div>
-            </Space>
-          </div>
-        )}
-        rowKey="id"
-        columns={milestoneColumns}
-        // dataSource={milestoneData}
-        dataSource={filteredData}
-        pagination={false}
-        loading={milestoneLoading}
-        size="small"
-        expandable={{
-          expandedRowRender: (record) => (
-            <MilestoneExpandedRow record={record} />
-          ),
-          expandedRowKeys: expandedRowKey ? [expandedRowKey] : [],
-          onExpand: (expanded, record) => {
-            setExpandedRowKey(expanded ? record.id : null);
-          },
-        }}
-      />
+          />
+        </>
+      )}
+      {activeTab === "payment-history" && (
+        <PaymentHistoryTable projectId={projectId} />
+      )}
     </>
   );
 }
