@@ -18,6 +18,9 @@ from .serializers import (
     MilestoneSerializer,
     PaymentHistorySerializer
 )
+#99999999 this id is reserved for all
+
+
 
 class MilestoneViewSet(viewsets.ModelViewSet):
     serializer_class = MilestoneSerializer
@@ -345,3 +348,80 @@ class PaymentHistoryViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(milestone__project_amount_id__project_id=project_id)
 
         return queryset
+    @action(detail=False, methods=["get"], url_path="history")
+    def payment_history_list(self, request):
+        project_id = request.query_params.get("project_id")
+        start_date = request.query_params.get("start_date")
+        end_date = request.query_params.get("end_date")
+
+        if not project_id:
+            return Response(
+                {"message": "project_id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        payments = PaymentHistory.objects.filter(
+    milestone__is_deleted=False,
+).select_related(
+    "milestone",
+    "milestone__project_amount_id",
+    "milestone__project_amount_id__project",
+    "milestone__project_amount_id__project__client",
+)
+        if project_id != "99999999":
+            payments = payments.filter(
+                milestone__project_amount_id__project_id=project_id
+            )
+
+        if start_date:
+            payments = payments.filter(created_at__date__gte=start_date)
+        if end_date:
+            payments = payments.filter(created_at__date__lte=end_date)
+
+        if not payments.exists():
+            return Response(
+                {"message": "No payment history found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        total_received = payments.aggregate(
+            total=Sum(
+                Case(
+                    When(payment_type="credit", then=F("amount")),
+                    When(payment_type="debit", then=-F("amount")),
+                    default=Value(0),
+                    output_field=DecimalField(max_digits=12, decimal_places=2),
+                )
+            )
+        )["total"] or 0
+
+        results = []
+        for payment in payments.order_by("-created_at"):
+            milestone = payment.milestone
+            project = milestone.project_amount_id.project if milestone else None
+            client = getattr(project, "client", None)
+
+            results.append({
+            "project_name": getattr(project, "name", None),
+            "client_name": getattr(client, "name", None),
+            "milestone_due_date": milestone.due_date if milestone else None,  # or month_year, or f"Milestone #{milestone.id}"
+            "invoice_no": milestone.invoice_no if milestone else None,
+            "invoice_date": milestone.invoice_date if milestone else None,
+
+            "received_date": payment.created_at,
+            "amount": float(payment.amount or 0),
+            "payment_type": payment.payment_type,
+        })
+        data = {
+            "project_id": project_id,
+            "total_received_amount": float(total_received),
+            "payments": results,
+        }
+
+        return Response(
+            {
+                "data": data,
+                "message": "Payment history fetched successfully",
+            },
+            status=status.HTTP_200_OK,
+        )
