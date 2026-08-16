@@ -1,4 +1,4 @@
-import { Card, Col, Empty, Row, Statistic, Typography } from "antd";
+import { Button, Card, Col, Empty, Row, Statistic, Typography } from "antd";
 import type { EChartsOption } from "echarts";
 import Chart from "../../../design-system/chart";
 import { useSalesDashboardPerformanceQuery } from "../../../query/sales/dashboard-performance.query";
@@ -6,7 +6,11 @@ import { useThemeStore } from "../../../store/theme";
 import type { DashboardModule } from "../../../services/sales/dashboard-performance.service";
 import SalesSummaryWidget from "./SalesSummaryWidget";
 import DashBoardFilters from "./DashBoardFilters";
-
+import { DownloadOutlined } from "@ant-design/icons";
+import { useSalesDashboardSummaryQuery } from "../../../query/sales/dashboard-summary.query";
+import { useRef, useState } from "react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 const { Title, Text } = Typography;
 
 type EmployeeCount = {
@@ -130,18 +134,169 @@ function getChartOption(
 function DashboardOptimized() {
   const mode = useThemeStore((state) => state.mode);
   const { data, loading } = useSalesDashboardPerformanceQuery();
+  const { data: salesdashboardsummary } = useSalesDashboardSummaryQuery();
   const isDark = mode === "dark";
+  const dashboardRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+  const handleExport = async () => {
+    if (!dashboardRef.current) return;
 
+    try {
+      setExporting(true);
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const element = dashboardRef.current;
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: isDark ? "#18181b" : "#f5f7fa",
+        logging: false,
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight,
+      });
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const margin = 8;
+      const usableWidth = pageWidth - margin * 2;
+      const usableHeight = pageHeight - margin * 2;
+
+      const scale = usableWidth / canvas.width;
+
+      const pagePixelHeight = usableHeight / scale;
+
+      let sourceY = 0;
+
+      while (sourceY < canvas.height) {
+        const remainingHeight = canvas.height - sourceY;
+
+        const currentHeight = Math.min(pagePixelHeight, remainingHeight);
+
+        const pageCanvas = document.createElement("canvas");
+
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = currentHeight;
+
+        const ctx = pageCanvas.getContext("2d");
+
+        if (!ctx) break;
+
+        ctx.drawImage(
+          canvas,
+          0,
+          sourceY,
+          canvas.width,
+          currentHeight,
+          0,
+          0,
+          canvas.width,
+          currentHeight,
+        );
+
+        const pageImage = pageCanvas.toDataURL("image/png");
+
+        const imageHeight = currentHeight * scale;
+
+        if (sourceY > 0) {
+          pdf.addPage();
+        }
+
+        pdf.addImage(
+          pageImage,
+          "PNG",
+          margin,
+          margin,
+          usableWidth,
+          imageHeight,
+        );
+
+        sourceY += currentHeight;
+      }
+
+      const quarter = salesdashboardsummary?.quarter_summary?.[0]?.quarter;
+
+      const fileName = quarter
+        ? `Sales-Dashboard-${quarter.replace("/", "-")}.pdf`
+        : "Sales-Dashboard.pdf";
+
+      pdf.save(fileName);
+    } catch (error) {
+      console.error("Failed to export dashboard:", error);
+    } finally {
+      setExporting(false);
+    }
+  };
   const chartDataByModule = (module: DashboardModule): EmployeeCount[] => {
     return (data[module] ?? []).map((item) => ({
       name: item.label,
       count: item.value,
     }));
   };
-
+  const quarterSummary = salesdashboardsummary?.quarter_summary[0] ?? null;
+  console.log("salesdashboardsummary", quarterSummary?.quarter);
   return (
-    <div>
-      <DashBoardFilters/>
+    <div ref={dashboardRef}>
+      {/* Page header: title + Export, placed above the filters. */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          flexWrap: "wrap",
+          marginBottom: 20,
+        }}
+      >
+        <div>
+          <Title
+            level={4}
+            style={{
+              margin: 0,
+              fontSize: 24,
+              fontWeight: 700,
+              lineHeight: 1.3,
+            }}
+          >
+            Sales Dashboard
+          </Title>
+          <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>
+            {quarterSummary?.quarter
+              ? `${quarterSummary?.quarter.split("-")[0]} · FY ${quarterSummary?.quarter.split("-")[1]}`
+              : ""}
+          </Text>
+        </div>
+
+        <Button
+          icon={<DownloadOutlined />}
+          onClick={handleExport}
+          style={{
+            height: 40,
+            borderRadius: 10,
+            paddingInline: 18,
+            fontWeight: 600,
+            background: isDark ? "#fafafa" : "#1f2340",
+            color: isDark ? "#1f2340" : "#fff",
+            border: "none",
+            boxShadow: "0 6px 16px rgba(31, 35, 64, 0.18)",
+          }}
+          loading={exporting}
+          disabled={exporting}
+          data-html2canvas-ignore="true"
+        >
+          Export
+        </Button>
+      </div>
+      <DashBoardFilters />
       <SalesSummaryWidget />
 
       <Row gutter={[16, 16]}>

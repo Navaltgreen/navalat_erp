@@ -1,5 +1,5 @@
 import { Card, Col, Empty, Row, Skeleton, Space, Typography } from "antd";
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import type { EChartsOption } from "echarts";
 import {
   CheckCircle2,
@@ -39,6 +39,28 @@ type MetricCardDefinition = {
   chips: (data: SalesDashboardSummaryData) => MetricChip[];
 };
 
+function getContentColor(isDark: boolean) {
+  return isDark ? "#fafafa" : "#1f2340";
+}
+
+function getMutedColor(isDark: boolean) {
+  return isDark ? "#d4d4d8" : "#8a8f98";
+}
+
+function getSecondaryMutedColor(isDark: boolean) {
+  return isDark ? "#a1a1aa" : "#8a8f98";
+}
+
+function getEyebrowStyle(isDark: boolean): CSSProperties {
+  return {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    color: getMutedColor(isDark),
+  };
+}
+
 function formatCurrency(value: number, compact = false) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -57,6 +79,7 @@ function getMetricCards(): MetricCardDefinition[] {
       iconBackground: "rgba(37, 99, 235, 0.12)",
       iconColor: "#2563eb",
       value: (data) => data.cards.lead.total,
+      subtitle: () => "All leads this period",
       chips: (data) => [
         {
           label: "Converted",
@@ -87,6 +110,7 @@ function getMetricCards(): MetricCardDefinition[] {
       iconBackground: "rgba(20, 184, 166, 0.12)",
       iconColor: "#0ea5a8",
       value: (data) => data.cards.proposal.total,
+      subtitle: () => "Sent to prospects",
       chips: (data) => [
         {
           label: "Approved",
@@ -383,8 +407,27 @@ function MetricCard({
   data: SalesDashboardSummaryData;
   isDark: boolean;
 }) {
+  const mutedColor = getSecondaryMutedColor(isDark);
+  const contentColor = getContentColor(isDark);
+  const [isHovered, setIsHovered] = useState(false);
   return (
-    <Card bordered={false} style={getPanelStyle(isDark)}>
+    <Card
+      bordered={false}
+      style={{
+        // height: "250px",
+        minHeight: 250,
+        height: "auto",
+        ...getPanelStyle(isDark),
+        position: "relative",
+        overflow: "hidden",
+        transform: isHovered ? "translateY(-3px)" : "translateY(0)",
+        transition: "box-shadow .18s ease, transform .18s ease",
+      }}
+      bodyStyle={{ padding: "22px 22px 24px", position: "relative" }}
+      hoverable
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div
         style={{
           display: "flex",
@@ -396,7 +439,7 @@ function MetricCard({
           <Text
             style={{
               display: "block",
-              color: isDark ? "#a1a1aa" : "#8a8f98",
+              color: mutedColor,
               fontSize: 16,
               textTransform: "uppercase",
               letterSpacing: 0.6,
@@ -404,16 +447,11 @@ function MetricCard({
           >
             {definition.title}
           </Text>
-          <Title
-            level={1}
-            style={{ margin: "6px 0 0", color: isDark ? "#fafafa" : "#1f2340" }}
-          >
+          <Title level={1} style={{ margin: "6px 0 0", color: contentColor }}>
             {definition.value(data)}
           </Title>
           {definition.subtitle ? (
-            <Text
-              style={{ color: isDark ? "#d4d4d8" : "#8a8f98", fontSize: 16 }}
-            >
+            <Text style={{ color: mutedColor, fontSize: 16 }}>
               {definition.subtitle(data)}
             </Text>
           ) : null}
@@ -436,16 +474,130 @@ function MetricCard({
 
       <div
         style={{
+          // display: "flex",
+          // flexWrap: "wrap",
+          // gap: 10,
+          // marginTop: 18,
           display: "flex",
           flexWrap: "wrap",
-          gap: 10,
-          marginTop: 18,
+          gap: 8,
+          marginTop: 20,
+          alignContent: "flex-start",
         }}
       >
         {definition.chips(data).map((chip) => (
           <MetricChipTag key={chip.label} chip={chip} />
         ))}
       </div>
+    </Card>
+  );
+}
+
+function QuarterSummaryCard({
+  quarterSummary,
+  loading,
+  isDark,
+}: {
+  quarterSummary: SalesDashboardSummaryData["quarter_summary"][number] | null;
+  loading: boolean;
+  isDark: boolean;
+}) {
+  const contentColor = getContentColor(isDark);
+  const eyebrowStyle = getEyebrowStyle(isDark);
+
+  return (
+    <Card
+      bordered={false}
+      style={{
+        ...getPanelStyle(isDark),
+        borderRadius: 24,
+        marginBottom: 16,
+        position: "relative",
+        overflow: "hidden",
+      }}
+      bodyStyle={{ padding: "32px 36px", position: "relative" }}
+    >
+      {/* Soft decorative accent, purely visual */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: 0,
+          right: 0,
+          width: 320,
+          height: "100%",
+          background: isDark
+            ? "radial-gradient(circle at top right, rgba(47,118,255,0.14), transparent 70%)"
+            : "radial-gradient(circle at top right, rgba(47,118,255,0.08), transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
+
+      {loading && !quarterSummary ? (
+        <Skeleton active paragraph={{ rows: 2 }} title={false} />
+      ) : (
+        <Row gutter={[16, 16]} align="bottom" justify="space-between">
+          <Col xs={24} lg={14}>
+            <Text style={eyebrowStyle}>Quarter Summary</Text>
+            <Title
+              level={1}
+              style={{
+                margin: "10px 0 10px",
+                fontSize: 38,
+                fontWeight: 700,
+                letterSpacing: -0.5,
+                lineHeight: 1,
+                color: contentColor,
+              }}
+            >
+              {quarterSummary?.quarter
+                ? `${quarterSummary?.quarter.split("-")[0]} · FY ${quarterSummary?.quarter.split("-")[1]}`
+                : "No Data"}
+            </Title>
+            <Space size={8} align="center">
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: "#22c55e",
+                  display: "inline-block",
+                  flexShrink: 0,
+                }}
+              />
+              <Text
+                style={{
+                  fontSize: 14.5,
+                  fontWeight: 500,
+                  color: getMutedColor(isDark),
+                }}
+              >
+                {quarterSummary
+                  ? `${quarterSummary.orders} Order${quarterSummary.orders === 1 ? "" : "s"} placed`
+                  : "Awaiting records"}
+              </Text>
+            </Space>
+          </Col>
+          <Col xs={24} lg={10}>
+            <div style={{ textAlign: "right" }}>
+              <Text style={eyebrowStyle}>Total Revenue</Text>
+              <Title
+                level={1}
+                style={{
+                  margin: "10px 0 0",
+                  fontSize: 36,
+                  fontWeight: 800,
+                  letterSpacing: -0.3,
+                  lineHeight: 1,
+                  color: contentColor,
+                }}
+              >
+                {formatCurrency(quarterSummary?.amount ?? 0)}
+              </Title>
+            </div>
+          </Col>
+        </Row>
+      )}
     </Card>
   );
 }
@@ -457,6 +609,9 @@ function QuarterPicHighlights({
   items: SalesDashboardQuarterPicPerformanceResponse[];
   isDark: boolean;
 }) {
+  const contentColor = getContentColor(isDark);
+  const mutedColor = getSecondaryMutedColor(isDark);
+
   if (items.length === 0) {
     return (
       <Empty
@@ -490,15 +645,13 @@ function QuarterPicHighlights({
               <Text
                 style={{
                   display: "block",
-                  color: isDark ? "#fafafa" : "#1f2340",
+                  color: contentColor,
                   fontWeight: 600,
                 }}
               >
                 {item.pic}
               </Text>
-              <Text style={{ color: isDark ? "#a1a1aa" : "#8a8f98" }}>
-                {item.quarter}
-              </Text>
+              <Text style={{ color: mutedColor }}>{item.quarter}</Text>
             </div>
             <div style={{ textAlign: "right" }}>
               <Text
@@ -506,9 +659,7 @@ function QuarterPicHighlights({
               >
                 {formatCurrency(item.amount)}
               </Text>
-              <Text style={{ color: isDark ? "#a1a1aa" : "#8a8f98" }}>
-                {item.orders} orders
-              </Text>
+              <Text style={{ color: mutedColor }}>{item.orders} orders</Text>
             </div>
           </div>
         </div>
@@ -523,55 +674,19 @@ function SalesSummaryWidget() {
   const isDark = mode === "dark";
   const metricCards = getMetricCards();
   const quarterSummary = data.quarter_summary[0] ?? null;
-  const contentColor = isDark ? "#fafafa" : "#1f2340";
-  const mutedColor = isDark ? "#d4d4d8" : "#8a8f98";
-
+  const contentColor = getContentColor(isDark);
+  const mutedColor = getSecondaryMutedColor(isDark);
+  console.log("quarterSummary999", quarterSummary);
   return (
     <div style={{ padding: "8px 0 24px" }}>
-      <Card
-        bordered={false}
-        style={{
-          borderRadius: 28,
-          marginBottom: 28,
-          //   background: isDark
-          //     ? "linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)"
-          //     : "linear-gradient(135deg, #2f76ff 0%, #1557b9 100%)",
-          //   boxShadow: "0 18px 40px rgba(37, 99, 235, 0.24)",
-        }}
-      >
-        {loading && !quarterSummary ? (
-          <Skeleton active paragraph={{ rows: 2 }} title={false} />
-        ) : (
-          <Row gutter={[8, 8]} align="middle">
-            <Col xs={24} lg={14}>
-              <Text style={{ fontSize: 18, letterSpacing: 1 }}>
-                QUARTER SUMMARY
-              </Text>
-              <Title level={1} style={{ margin: "10px 0 8px" }}>
-                {quarterSummary?.quarter ?? "No quarter data"}
-              </Title>
-              <Text style={{ fontSize: 18 }}>
-                {quarterSummary
-                  ? `${quarterSummary.orders} Order${quarterSummary.orders === 1 ? "" : "s"}`
-                  : "Awaiting records"}
-              </Text>
-            </Col>
-            <Col xs={24} lg={10}>
-              <div style={{ textAlign: "right" }}>
-                <Text style={{ fontSize: 18, letterSpacing: 0.6 }}>
-                  TOTAL REVENUE
-                </Text>
-                <Title level={1} style={{ margin: "10px 0 0" }}>
-                  {formatCurrency(quarterSummary?.amount ?? 0)}
-                </Title>
-              </div>
-            </Col>
-          </Row>
-        )}
-      </Card>
+      <QuarterSummaryCard
+        quarterSummary={quarterSummary}
+        loading={loading}
+        isDark={isDark}
+      />
 
       <SectionHeader title="Key Metrics" color={contentColor} />
-      <Row gutter={[8, 8]} style={{ marginBottom: 28 }}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         {metricCards.map((definition) => (
           <Col key={definition.title} xs={24} sm={12} xl={6}>
             <MetricCard definition={definition} data={data} isDark={isDark} />
@@ -733,7 +848,7 @@ function SalesSummaryWidget() {
                     marginBottom: 14,
                   }}
                 >
-                  QUARTER PIC HIGHLIGHTS
+                  Quarter PIC Highlights
                 </Text>
                 <QuarterPicHighlights
                   items={data.quarter_pic_performance}
