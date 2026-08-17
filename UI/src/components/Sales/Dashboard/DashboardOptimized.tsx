@@ -158,7 +158,7 @@ function DashboardOptimized() {
         scale: 2,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: isDark ? "#fff" : "#fff",
+        backgroundColor: isDark ? "#000" : "#fff",
         logging: false,
         // use the ACTUAL rendered width, not scrollWidth
         width: element.offsetWidth,
@@ -333,7 +333,6 @@ function DashboardOptimized() {
           Export
         </Button>
       </div>
-    
       <div className="pdf-block">
         <DashBoardFilters />
       </div>
