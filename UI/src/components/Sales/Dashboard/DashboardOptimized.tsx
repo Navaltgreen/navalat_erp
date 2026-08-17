@@ -11,6 +11,7 @@ import { useSalesDashboardSummaryQuery } from "../../../query/sales/dashboard-su
 import { useRef, useState } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { useDashboardFilterStore } from "../../../store/sales/dashboard/dashboard-filter.store";
 const { Title, Text } = Typography;
 
 type EmployeeCount = {
@@ -138,6 +139,15 @@ function DashboardOptimized() {
   const isDark = mode === "dark";
   const dashboardRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
+  const periodType = useDashboardFilterStore((state) => state.periodType);
+  const selectedYear = useDashboardFilterStore((state) => state.year);
+  const selectedMonth = useDashboardFilterStore((state) => state.month);
+  const selectedQuarter = useDashboardFilterStore((state) => state.quarter);
+  const getMonthName = (month: number) => {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+    }).format(new Date(2026, month - 1, 1));
+  };
 
   const handleExport = async () => {
     if (!dashboardRef.current) return;
@@ -261,7 +271,7 @@ function DashboardOptimized() {
         pageIndex += 1;
       }
 
-      const quarter = salesdashboardsummary?.quarter_summary?.[0]?.quarter;
+      const quarter = salesdashboardsummary?.range_summary?.[0]?.quarter;
       const fileName = quarter
         ? `Sales-Dashboard-${quarter.replace("/", "-")}.pdf`
         : "Sales-Dashboard.pdf";
@@ -279,8 +289,24 @@ function DashboardOptimized() {
       count: item.value,
     }));
   };
-  const quarterSummary = salesdashboardsummary?.quarter_summary[0] ?? null;
+  const quarterSummary = salesdashboardsummary?.range_summary[0] ?? null;
   console.log("salesdashboardsummary", quarterSummary?.quarter);
+
+  const getPeriodDisplay = () => {
+    if (periodType === "yearly") {
+      return `FY ${selectedYear}`;
+    }
+
+    if (periodType === "quarterly") {
+      return `${selectedQuarter} · FY ${selectedYear}`;
+    }
+
+    if (periodType === "month") {
+      return `${getMonthName(Number(selectedMonth))} · FY ${selectedYear}`;
+    }
+
+    return "";
+  };
   return (
     <div ref={dashboardRef}>
       {/* Page header: title + Export, placed above the filters. */}
@@ -307,9 +333,10 @@ function DashboardOptimized() {
             Sales Dashboard
           </Title>
           <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>
-            {quarterSummary?.quarter
+            {/* {quarterSummary?.quarter
               ? `${quarterSummary?.quarter.split("-")[0]} · FY ${quarterSummary?.quarter.split("-")[1]}`
-              : ""}
+              : ""} */}
+            {getPeriodDisplay()}
           </Text>
         </div>
 

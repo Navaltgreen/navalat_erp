@@ -15,9 +15,11 @@ import { useSalesDashboardSummaryQuery } from "../../../query/sales/dashboard-su
 import { useThemeStore } from "../../../store/theme";
 import type {
   SalesDashboardPicPerformanceResponse,
-  SalesDashboardQuarterPicPerformanceResponse,
+  // SalesDashboardQuarterPicPerformanceResponse,
   SalesDashboardSummaryData,
 } from "../../../types/sales/dashboard-summary.response";
+import { useDashboardFilterStore } from "../../../store/sales/dashboard/dashboard-filter.store";
+// import { useDashboardFilterStore } from "../../../store/sales/dashboard/dashboard-filter.store";
 
 const { Text, Title } = Typography;
 
@@ -498,12 +500,36 @@ function QuarterSummaryCard({
   loading,
   isDark,
 }: {
-  quarterSummary: SalesDashboardSummaryData["quarter_summary"][number] | null;
+  quarterSummary: SalesDashboardSummaryData["range_summary"][number] | null;
   loading: boolean;
   isDark: boolean;
 }) {
   const contentColor = getContentColor(isDark);
   const eyebrowStyle = getEyebrowStyle(isDark);
+  const periodType = useDashboardFilterStore((state) => state.periodType);
+  const selectedYear = useDashboardFilterStore((state) => state.year);
+  const selectedMonth = useDashboardFilterStore((state) => state.month);
+  const selectedQuarter = useDashboardFilterStore((state) => state.quarter);
+  const getMonthName = (month: number) => {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+    }).format(new Date(2026, month - 1, 1));
+  };
+  const getPeriodDisplay = () => {
+    if (periodType === "yearly") {
+      return `FY ${selectedYear}`;
+    }
+
+    if (periodType === "quarterly") {
+      return `${selectedQuarter} · FY ${selectedYear}`;
+    }
+
+    if (periodType === "month") {
+      return `${getMonthName(Number(selectedMonth))} · FY ${selectedYear}`;
+    }
+
+    return "";
+  };
 
   return (
     <Card
@@ -550,9 +576,10 @@ function QuarterSummaryCard({
                 color: contentColor,
               }}
             >
-              {quarterSummary?.quarter
+              {getPeriodDisplay() || "No Data"}
+              {/* {quarterSummary?.quarter
                 ? `${quarterSummary?.quarter.split("-")[0]} · FY ${quarterSummary?.quarter.split("-")[1]}`
-                : "No Data"}
+                : "No Data"} */}
             </Title>
             <Space size={8} align="center">
               <span
@@ -602,81 +629,82 @@ function QuarterSummaryCard({
   );
 }
 
-function QuarterPicHighlights({
-  items,
-  isDark,
-}: {
-  items: SalesDashboardQuarterPicPerformanceResponse[];
-  isDark: boolean;
-}) {
-  const contentColor = getContentColor(isDark);
-  const mutedColor = getSecondaryMutedColor(isDark);
+// function QuarterPicHighlights({
+//   items,
+//   isDark,
+// }: {
+//   items: SalesDashboardQuarterPicPerformanceResponse[];
+//   isDark: boolean;
+// }) {
+//   const contentColor = getContentColor(isDark);
+//   const mutedColor = getSecondaryMutedColor(isDark);
 
-  if (items.length === 0) {
-    return (
-      <Empty
-        image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description="No quarter PIC highlights"
-      />
-    );
-  }
+//   if (items.length === 0) {
+//     return (
+//       <Empty
+//         image={Empty.PRESENTED_IMAGE_SIMPLE}
+//         description="No quarter PIC highlights"
+//       />
+//     );
+//   }
 
-  return (
-    <div style={{ display: "grid", gap: 12 }}>
-      {items.map((item) => (
-        <div
-          key={`${item.quarter}-${item.pic}`}
-          style={{
-            padding: 14,
-            borderRadius: 16,
-            border: `1px solid ${isDark ? "#3f3f46" : "#dcfce7"}`,
-            background: isDark ? "rgba(39, 39, 42, 0.75)" : "#f7fff8",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              alignItems: "center",
-            }}
-          >
-            <div>
-              <Text
-                style={{
-                  display: "block",
-                  color: contentColor,
-                  fontWeight: 600,
-                }}
-              >
-                {item.pic}
-              </Text>
-              <Text style={{ color: mutedColor }}>{item.quarter}</Text>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <Text
-                style={{ display: "block", color: "#65a30d", fontWeight: 600 }}
-              >
-                {formatCurrency(item.amount)}
-              </Text>
-              <Text style={{ color: mutedColor }}>{item.orders} orders</Text>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
+//   return (
+//     <div style={{ display: "grid", gap: 12 }}>
+//       {items.map((item) => (
+//         <div
+//           key={`${item.quarter}-${item.pic}`}
+//           style={{
+//             padding: 14,
+//             borderRadius: 16,
+//             border: `1px solid ${isDark ? "#3f3f46" : "#dcfce7"}`,
+//             background: isDark ? "rgba(39, 39, 42, 0.75)" : "#f7fff8",
+//           }}
+//         >
+//           <div
+//             style={{
+//               display: "flex",
+//               justifyContent: "space-between",
+//               gap: 12,
+//               alignItems: "center",
+//             }}
+//           >
+//             <div>
+//               <Text
+//                 style={{
+//                   display: "block",
+//                   color: contentColor,
+//                   fontWeight: 600,
+//                 }}
+//               >
+//                 {item.pic}
+//               </Text>
+//               <Text style={{ color: mutedColor }}>{item.quarter}</Text>
+//             </div>
+//             <div style={{ textAlign: "right" }}>
+//               <Text
+//                 style={{ display: "block", color: "#65a30d", fontWeight: 600 }}
+//               >
+//                 {formatCurrency(item.amount)}
+//               </Text>
+//               <Text style={{ color: mutedColor }}>{item.orders} orders</Text>
+//             </div>
+//           </div>
+//         </div>
+//       ))}
+//     </div>
+//   );
+// }
 
 function SalesSummaryWidget() {
   const mode = useThemeStore((state) => state.mode);
   const { data, loading, error } = useSalesDashboardSummaryQuery();
   const isDark = mode === "dark";
   const metricCards = getMetricCards();
-  const quarterSummary = data.quarter_summary[0] ?? null;
+  const quarterSummary = data?.range_summary[0] ?? null;
   const contentColor = getContentColor(isDark);
   const mutedColor = getSecondaryMutedColor(isDark);
   console.log("quarterSummary999", quarterSummary);
+
   return (
     <div style={{ padding: "8px 0 24px" }}>
       <QuarterSummaryCard
@@ -839,7 +867,7 @@ function SalesSummaryWidget() {
                   ))}
                 </div>
 
-                <Text
+                {/* <Text
                   style={{
                     display: "block",
                     color: mutedColor,
@@ -849,11 +877,11 @@ function SalesSummaryWidget() {
                   }}
                 >
                   Quarter PIC Highlights
-                </Text>
-                <QuarterPicHighlights
+                </Text> */}
+                {/* <QuarterPicHighlights
                   items={data.quarter_pic_performance}
                   isDark={isDark}
-                />
+                /> */}
               </>
             )}
           </Card>

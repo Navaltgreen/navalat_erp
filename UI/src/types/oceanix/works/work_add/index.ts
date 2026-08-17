@@ -15,6 +15,7 @@ export interface FormDataType {
   description?: string;
   comment?: string;
   images: UploadFile[];
+  work_category?: string;
   team_id?: {
     label: string;
     value: string;
@@ -27,6 +28,7 @@ export interface ErrorsType {
   subtab?: string;
   status?: string;
   description?: string;
+  work_category?: string;
   comment?: string;
   images?: string;
   team_id?: string;

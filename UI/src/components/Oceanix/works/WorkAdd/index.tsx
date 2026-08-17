@@ -138,7 +138,20 @@ const WorkAdd: React.FC = () => {
       required: true,
       validationMessage: "Status is required",
       options: [
-        { label: "In Progress", value: "inprogress" },
+        { label: "Not Started", value: "not_started" },
+        // { label: "Completed", value: "completed" },
+      ],
+    },
+    {
+      name: "work_category",
+      label: "Work Category",
+      type: "select",
+      span: 24,
+      required: true,
+      validationMessage: "Work Category is required",
+      options: [
+        { label: "Bug", value: "bug" },
+        { label: "New Development", value: "new_development" },
         // { label: "Completed", value: "completed" },
       ],
     },

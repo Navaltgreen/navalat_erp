@@ -522,7 +522,7 @@ function SalesSummaryWidget() {
   const { data, loading, error } = useSalesDashboardSummaryQuery();
   const isDark = mode === "dark";
   const metricCards = getMetricCards();
-  const quarterSummary = data.quarter_summary[0] ?? null;
+  const quarterSummary = data.range_summary[0] ?? null;
   const contentColor = isDark ? "#fafafa" : "#1f2340";
   const mutedColor = isDark ? "#d4d4d8" : "#8a8f98";
 
