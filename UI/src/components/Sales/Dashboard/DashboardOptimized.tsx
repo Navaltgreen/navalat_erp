@@ -138,13 +138,19 @@ function DashboardOptimized() {
   const isDark = mode === "dark";
   const dashboardRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
+
   const handleExport = async () => {
     if (!dashboardRef.current) return;
 
     try {
       setExporting(true);
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // wait for charts to finish rendering (next frame + small buffer)
+      await new Promise((resolve) =>
+        requestAnimationFrame(() => setTimeout(resolve, 300)),
+      );
+      // lock scroll position — html2canvas can misalign if the page is scrolled
+      window.scrollTo(0, 0);
 
       const element = dashboardRef.current;
 
@@ -154,8 +160,30 @@ function DashboardOptimized() {
         allowTaint: true,
         backgroundColor: isDark ? "#18181b" : "#f5f7fa",
         logging: false,
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight,
+        // use the ACTUAL rendered width, not scrollWidth
+        width: element.offsetWidth,
+        height: element.scrollHeight,
+        windowWidth: document.documentElement.clientWidth,
+        windowHeight: document.documentElement.clientHeight,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
+        onclone: (clonedDoc, clonedEl) => {
+          // force the clone to lay out at the same width as the real element,
+          // so the Ant Design grid doesn't reflow into extra/missing columns
+          clonedEl.style.width = `${element.offsetWidth}px`;
+          clonedEl.style.maxWidth = `${element.offsetWidth}px`;
+          clonedEl.style.overflow = "hidden";
+
+          // hide any stray floating controls (tab switchers, tooltips, popovers)
+          // that shouldn't appear in the export
+          clonedDoc
+            .querySelectorAll(
+              ".ant-tooltip, .ant-popover, [data-html2canvas-ignore]",
+            )
+            .forEach((node) => node.remove());
+        },
       });
 
       const pdf = new jsPDF({
@@ -163,32 +191,45 @@ function DashboardOptimized() {
         unit: "mm",
         format: "a4",
       });
-
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-
       const margin = 8;
       const usableWidth = pageWidth - margin * 2;
       const usableHeight = pageHeight - margin * 2;
+      const scale = canvas.width / element.scrollWidth; // px ratio from html2canvas `scale: 2`
+      const pxToMm = usableWidth / canvas.width;
+      const pagePixelHeight = usableHeight / pxToMm;
 
-      const scale = usableWidth / canvas.width;
-
-      const pagePixelHeight = usableHeight / scale;
+      // Get bottom edge (in canvas px) of every card/section, so we never cut through one
+      const cardEls = Array.from(element.querySelectorAll(".ant-card"));
+      const containerTop = element.getBoundingClientRect().top;
+      const breakPoints = cardEls.map((el) => {
+        const rect = el.getBoundingClientRect();
+        return (rect.bottom - containerTop) * scale; // canvas px
+      });
 
       let sourceY = 0;
+      let pageIndex = 0;
 
       while (sourceY < canvas.height) {
-        const remainingHeight = canvas.height - sourceY;
+        const maxY = Math.min(sourceY + pagePixelHeight, canvas.height);
 
-        const currentHeight = Math.min(pagePixelHeight, remainingHeight);
+        // find the last safe break point (a card bottom) that fits on this page
+        let cutY = maxY;
+        const safeBreak = [...breakPoints]
+          .filter((bp) => bp > sourceY && bp <= maxY)
+          .pop();
+        if (safeBreak && maxY < canvas.height) {
+          cutY = safeBreak;
+        }
+
+        const currentHeight = cutY - sourceY;
+        if (currentHeight <= 0) break; // safety guard
 
         const pageCanvas = document.createElement("canvas");
-
         pageCanvas.width = canvas.width;
         pageCanvas.height = currentHeight;
-
         const ctx = pageCanvas.getContext("2d");
-
         if (!ctx) break;
 
         ctx.drawImage(
@@ -204,13 +245,9 @@ function DashboardOptimized() {
         );
 
         const pageImage = pageCanvas.toDataURL("image/png");
+        const imageHeight = currentHeight * pxToMm;
 
-        const imageHeight = currentHeight * scale;
-
-        if (sourceY > 0) {
-          pdf.addPage();
-        }
-
+        if (pageIndex > 0) pdf.addPage();
         pdf.addImage(
           pageImage,
           "PNG",
@@ -220,11 +257,11 @@ function DashboardOptimized() {
           imageHeight,
         );
 
-        sourceY += currentHeight;
+        sourceY = cutY;
+        pageIndex += 1;
       }
 
       const quarter = salesdashboardsummary?.quarter_summary?.[0]?.quarter;
-
       const fileName = quarter
         ? `Sales-Dashboard-${quarter.replace("/", "-")}.pdf`
         : "Sales-Dashboard.pdf";
@@ -296,9 +333,14 @@ function DashboardOptimized() {
           Export
         </Button>
       </div>
-      <DashBoardFilters />
-      <SalesSummaryWidget />
+      <div className="pdf-block">
+        <DashBoardFilters />
+      </div>
 
+      <div className="pdf-block">
+        <SalesSummaryWidget />
+      </div>
+      <div className="pdf-block"></div>
       <Row gutter={[16, 16]}>
         <Col span={24}>
           <div style={{ marginBottom: 16 }}>
