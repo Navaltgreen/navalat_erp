@@ -158,7 +158,7 @@ function DashboardOptimized() {
         scale: 2,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: isDark ? "#18181b" : "#f5f7fa",
+        backgroundColor: isDark ? "#fff" : "#fff",
         logging: false,
         // use the ACTUAL rendered width, not scrollWidth
         width: element.offsetWidth,
@@ -333,6 +333,7 @@ function DashboardOptimized() {
           Export
         </Button>
       </div>
+    
       <div className="pdf-block">
         <DashBoardFilters />
       </div>
@@ -340,7 +341,7 @@ function DashboardOptimized() {
       <div className="pdf-block">
         <SalesSummaryWidget />
       </div>
-      <div className="pdf-block"></div>
+
       <Row gutter={[16, 16]}>
         <Col span={24}>
           <div style={{ marginBottom: 16 }}>
