@@ -1,4 +1,4 @@
-import { Card, Col, Empty, Row, Statistic, Typography } from "antd";
+import { Button, Card, Col, Empty, Row, Statistic, Typography } from "antd";
 import type { EChartsOption } from "echarts";
 import Chart from "../../../design-system/chart";
 import { useSalesDashboardPerformanceQuery } from "../../../query/sales/dashboard-performance.query";
@@ -6,7 +6,12 @@ import { useThemeStore } from "../../../store/theme";
 import type { DashboardModule } from "../../../services/sales/dashboard-performance.service";
 import SalesSummaryWidget from "./SalesSummaryWidget";
 import DashBoardFilters from "./DashBoardFilters";
-
+import { DownloadOutlined } from "@ant-design/icons";
+import { useSalesDashboardSummaryQuery } from "../../../query/sales/dashboard-summary.query";
+import { useRef, useState } from "react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import { useDashboardFilterStore } from "../../../store/sales/dashboard/dashboard-filter.store";
 const { Title, Text } = Typography;
 
 type EmployeeCount = {
@@ -130,19 +135,238 @@ function getChartOption(
 function DashboardOptimized() {
   const mode = useThemeStore((state) => state.mode);
   const { data, loading } = useSalesDashboardPerformanceQuery();
+  const { data: salesdashboardsummary } = useSalesDashboardSummaryQuery();
   const isDark = mode === "dark";
+  const dashboardRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+  const periodType = useDashboardFilterStore((state) => state.periodType);
+  const selectedYear = useDashboardFilterStore((state) => state.year);
+  const selectedMonth = useDashboardFilterStore((state) => state.month);
+  const selectedQuarter = useDashboardFilterStore((state) => state.quarter);
+  const getMonthName = (month: number) => {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+    }).format(new Date(2026, month - 1, 1));
+  };
 
+  const handleExport = async () => {
+    if (!dashboardRef.current) return;
+
+    try {
+      setExporting(true);
+
+      // wait for charts to finish rendering (next frame + small buffer)
+      await new Promise((resolve) =>
+        requestAnimationFrame(() => setTimeout(resolve, 300)),
+      );
+      // lock scroll position — html2canvas can misalign if the page is scrolled
+      window.scrollTo(0, 0);
+
+      const element = dashboardRef.current;
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: isDark ? "#000" : "#fff",
+        logging: false,
+        // use the ACTUAL rendered width, not scrollWidth
+        width: element.offsetWidth,
+        height: element.scrollHeight,
+        windowWidth: document.documentElement.clientWidth,
+        windowHeight: document.documentElement.clientHeight,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
+        onclone: (clonedDoc, clonedEl) => {
+          // force the clone to lay out at the same width as the real element,
+          // so the Ant Design grid doesn't reflow into extra/missing columns
+          clonedEl.style.width = `${element.offsetWidth}px`;
+          clonedEl.style.maxWidth = `${element.offsetWidth}px`;
+          clonedEl.style.overflow = "hidden";
+
+          // hide any stray floating controls (tab switchers, tooltips, popovers)
+          // that shouldn't appear in the export
+          clonedDoc
+            .querySelectorAll(
+              ".ant-tooltip, .ant-popover, [data-html2canvas-ignore]",
+            )
+            .forEach((node) => node.remove());
+        },
+      });
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 8;
+      const usableWidth = pageWidth - margin * 2;
+      const usableHeight = pageHeight - margin * 2;
+      const scale = canvas.width / element.scrollWidth; // px ratio from html2canvas `scale: 2`
+      const pxToMm = usableWidth / canvas.width;
+      const pagePixelHeight = usableHeight / pxToMm;
+
+      // Get bottom edge (in canvas px) of every card/section, so we never cut through one
+      const cardEls = Array.from(element.querySelectorAll(".ant-card"));
+      const containerTop = element.getBoundingClientRect().top;
+      const breakPoints = cardEls.map((el) => {
+        const rect = el.getBoundingClientRect();
+        return (rect.bottom - containerTop) * scale; // canvas px
+      });
+
+      let sourceY = 0;
+      let pageIndex = 0;
+
+      while (sourceY < canvas.height) {
+        const maxY = Math.min(sourceY + pagePixelHeight, canvas.height);
+
+        // find the last safe break point (a card bottom) that fits on this page
+        let cutY = maxY;
+        const safeBreak = [...breakPoints]
+          .filter((bp) => bp > sourceY && bp <= maxY)
+          .pop();
+        if (safeBreak && maxY < canvas.height) {
+          cutY = safeBreak;
+        }
+
+        const currentHeight = cutY - sourceY;
+        if (currentHeight <= 0) break; // safety guard
+
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = currentHeight;
+        const ctx = pageCanvas.getContext("2d");
+        if (!ctx) break;
+
+        ctx.drawImage(
+          canvas,
+          0,
+          sourceY,
+          canvas.width,
+          currentHeight,
+          0,
+          0,
+          canvas.width,
+          currentHeight,
+        );
+
+        const pageImage = pageCanvas.toDataURL("image/png");
+        const imageHeight = currentHeight * pxToMm;
+
+        if (pageIndex > 0) pdf.addPage();
+        pdf.addImage(
+          pageImage,
+          "PNG",
+          margin,
+          margin,
+          usableWidth,
+          imageHeight,
+        );
+
+        sourceY = cutY;
+        pageIndex += 1;
+      }
+
+      const quarter = salesdashboardsummary?.range_summary?.[0]?.quarter;
+      const fileName = quarter
+        ? `Sales-Dashboard-${quarter.replace("/", "-")}.pdf`
+        : "Sales-Dashboard.pdf";
+
+      pdf.save(fileName);
+    } catch (error) {
+      console.error("Failed to export dashboard:", error);
+    } finally {
+      setExporting(false);
+    }
+  };
   const chartDataByModule = (module: DashboardModule): EmployeeCount[] => {
     return (data[module] ?? []).map((item) => ({
       name: item.label,
       count: item.value,
     }));
   };
+  const quarterSummary = salesdashboardsummary?.range_summary[0] ?? null;
+  console.log("salesdashboardsummary", quarterSummary?.quarter);
 
+  const getPeriodDisplay = () => {
+    if (periodType === "yearly") {
+      return `FY ${selectedYear}`;
+    }
+
+    if (periodType === "quarterly") {
+      return `${selectedQuarter} · FY ${selectedYear}`;
+    }
+
+    if (periodType === "month") {
+      return `${getMonthName(Number(selectedMonth))} · FY ${selectedYear}`;
+    }
+
+    return "";
+  };
   return (
-    <div>
-      <DashBoardFilters/>
-      <SalesSummaryWidget />
+    <div ref={dashboardRef}>
+      {/* Page header: title + Export, placed above the filters. */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          flexWrap: "wrap",
+          marginBottom: 20,
+        }}
+      >
+        <div>
+          <Title
+            level={4}
+            style={{
+              margin: 0,
+              fontSize: 24,
+              fontWeight: 700,
+              lineHeight: 1.3,
+            }}
+          >
+            Sales Dashboard
+          </Title>
+          <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>
+            {/* {quarterSummary?.quarter
+              ? `${quarterSummary?.quarter.split("-")[0]} · FY ${quarterSummary?.quarter.split("-")[1]}`
+              : ""} */}
+            {getPeriodDisplay()}
+          </Text>
+        </div>
+
+        <Button
+          icon={<DownloadOutlined />}
+          onClick={handleExport}
+          style={{
+            height: 40,
+            borderRadius: 10,
+            paddingInline: 18,
+            fontWeight: 600,
+            background: isDark ? "#fafafa" : "#1f2340",
+            color: isDark ? "#1f2340" : "#fff",
+            border: "none",
+            boxShadow: "0 6px 16px rgba(31, 35, 64, 0.18)",
+          }}
+          loading={exporting}
+          disabled={exporting}
+          data-html2canvas-ignore="true"
+        >
+          Export
+        </Button>
+      </div>
+      <div className="pdf-block">
+        <DashBoardFilters />
+      </div>
+
+      <div className="pdf-block">
+        <SalesSummaryWidget />
+      </div>
 
       <Row gutter={[16, 16]}>
         <Col span={24}>

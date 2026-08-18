@@ -54,7 +54,7 @@ export type SalesDashboardSummaryData = {
     quotation: SalesDashboardQuotationCardResponse;
     purchase_order: SalesDashboardPurchaseOrderCardResponse;
   };
-  quarter_summary: SalesDashboardQuarterSummaryResponse[];
+  range_summary: SalesDashboardQuarterSummaryResponse[];
   pic_performance: SalesDashboardPicPerformanceResponse[];
   quarter_pic_performance: SalesDashboardQuarterPicPerformanceResponse[];
 };
@@ -93,7 +93,7 @@ export const emptySalesDashboardSummaryData: SalesDashboardSummaryData = {
       average_order: 0,
     },
   },
-  quarter_summary: [],
+  range_summary: [],
   pic_performance: [],
   quarter_pic_performance: [],
 };

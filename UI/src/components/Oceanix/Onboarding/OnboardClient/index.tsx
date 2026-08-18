@@ -16,6 +16,7 @@ import {
 
 import { useClientStore } from "../../../../store/oceanix/onboarding/onboarding_client";
 import { useProjectStore } from "../../../../store/oceanix/onboarding/onboarding_project";
+import { useThemeStore } from "../../../../store/theme";
 
 const { Text, Title } = Typography;
 
@@ -68,11 +69,21 @@ const fields: Field[] = [
     rules: [{ required: true, message: "Address is required" }],
   },
 ];
+// Per-field character filters, applied as the user types (not just on
+// submit). Each function strips out characters that shouldn't be allowed
+// for that field. Fields not listed here pass through unchanged.
+const fieldSanitizers: Partial<Record<string, (value: string) => string>> = {
+  phone_number: (value) => value.replace(/[^0-9]/g, ""),
+  country: (value) => value.replace(/[^a-zA-Z\s]/g, ""),
+};
 
 function OnboardClient() {
   const createClient = useClientStore((s) => s.createClient);
   const fetchAllClient = useProjectStore((s) => s.fetchAllClient);
   const loading = useClientStore((s) => s.loading);
+  const mode = useThemeStore((state) => state.mode);
+
+  const isDark = mode === "dark";
 
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -87,10 +98,12 @@ function OnboardClient() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
+    const sanitize = fieldSanitizers[name];
+    const nextValue = sanitize ? sanitize(value) : value;
 
     setFormData((prev) => ({
       ...prev,
-      [name as keyof FormDataPayload]: value,
+      [name as keyof FormDataPayload]: nextValue,
     }));
 
     setErrors((prev) => ({
@@ -215,16 +228,17 @@ function OnboardClient() {
       justify="center"
       align="middle"
       style={{
-        background: "#f4f7fb",
+        // background: "#f4f7fb",
         padding: 20,
       }}
     >
       <Col xs={24} md={16} lg={10}>
         <div
           style={{
-            background: "#fff",
+            // background: "#fff",
             padding: 32,
             borderRadius: 16,
+            border: isDark ? "1px solid #3f3f46" : "none",
             boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
           }}
         >
